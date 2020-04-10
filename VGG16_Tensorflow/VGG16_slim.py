@@ -75,27 +75,39 @@ class VGG16():
               is_training=True,
               keep_prob=0.5,
               reuse=None,
-              scope='vgg_16',
-              fc_conv_padding='VALID'):
+              scope='vgg_16'):
        with tf.variable_scope(scope, 'vgg_16', [inputs], reuse=reuse) as sc:
            # Collect outputs for conv2d, fully_connected and max_pool2d.
            with slim.arg_scope([slim.conv2d, slim.fully_connected],
                                activation_fn= tf.nn.relu,
                                weights_regularizer=slim.l2_regularizer(self.weight_decay),
                                biases_initializer=tf.zeros_initializer()):
-               net = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
+               with tf.variable_scope('conv1', default_name='conv1'):
+                   net = slim.conv2d(inputs, num_outputs=64, kernel_size=[3, 3], scope='conv1_1')
+                   net = slim.conv2d(net, num_outputs=64, kernel_size=[3, 3], scope='conv1_2')
                net = slim.max_pool2d(net, [2, 2], scope='pool1')
-               net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
+               with tf.variable_scope('conv2', default_name='conv2'):
+                    net = slim.conv2d(net, num_outputs=128, kernel_size=[3, 3], scope='conv2_1')
+                    net = slim.conv2d(net, num_outputs=128, kernel_size=[3, 3], scope='conv2_2')
                net = slim.max_pool2d(net, [2, 2], scope='pool2')
-               net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
+               with tf.variable_scope('conv3', default_name='conv3'):
+                    net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_1')
+                    net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_2')
+                    net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_3')
                net = slim.max_pool2d(net, [2, 2], scope='pool3')
-               net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
+               with tf.variable_scope('conv4', default_name='conv4'):
+                    net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_1')
+                    net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_2')
+                    net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_3')
                net = slim.max_pool2d(net, [2, 2], scope='pool4')
-               net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
+               with tf.variable_scope('conv5', default_name='conv5'):
+                   net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_1')
+                   net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_2')
+                   net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_3')
                net = slim.max_pool2d(net, [2, 2], scope='pool5')
 
                # Use conv2d instead of fully_connected layers.
-               net = slim.conv2d(net, 4096, [7, 7], padding=fc_conv_padding, scope='fc6')
+               net = slim.conv2d(net, 4096, [7, 7], padding='VALID', scope='fc6')
                net = slim.dropout(net, keep_prob, is_training=is_training, scope='dropout6')
                net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
                # dropout
@@ -104,7 +116,7 @@ class VGG16():
                net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
                logits = tf.squeeze(net, [1, 2], name='fc8/squeezed')
 
-               net = slim.flatten(net)
+               # net = slim.flatten(net)
                # net = slim.fully_connected(net, num_outputs=512, scope='fc8_1')
                # net = slim.dropout(net, keep_prob, is_training=is_training, scope='dropout8')
                # logits = slim.fully_connected(inputs=net, num_outputs=num_classes, activation_fn=None, scope='fc8')
@@ -195,72 +207,4 @@ class VGG16():
             channels[n] -= means[n]
         return tf.concat(values=channels, axis=3, name='concat_channel')
 
-# if __name__ == "__main__":
-#     num_classes = 2
-#     is_training=True
-#     dropout_keep_prob=0.5
-#     spatial_squeeze=True
-#     reuse=None
-#     scope='vgg_16'
-#     fc_conv_padding='VALID'
-#     global_pool=False
-#
-#     inputs = tf.placeholder(dtype=tf.float32, shape=[None, 224, 224, 3], name='inputs')
-#
-#     with tf.variable_scope(scope, 'vgg_16', [inputs], reuse=reuse) as sc:
-#         end_points_collection = sc.original_name_scope + '_end_points'
-#         # Collect outputs for conv2d, fully_connected and max_pool2d.
-#         with slim.arg_scope([slim.conv2d, slim.fully_connected, slim.max_pool2d],
-#                             outputs_collections=end_points_collection):
-#             # net = slim.repeat(inputs, 2, slim.conv2d, 64, [3, 3], scope='conv1')
-#             with tf.variable_scope('conv1', default_name='conv1'):
-#                 net = slim.conv2d(inputs, num_outputs=64, kernel_size=[3, 3], scope='conv1_1')
-#                 net = slim.conv2d(net, num_outputs=64, kernel_size=[3, 3], scope='conv1_2')
-#             net = slim.max_pool2d(net, [2, 2], scope='pool1')
-#
-#             # net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3], scope='conv2')
-#             with tf.variable_scope('conv2', default_name='conv2'):
-#                 net = slim.conv2d(net, num_outputs=128, kernel_size=[3, 3], scope='conv2_1')
-#                 net = slim.conv2d(net, num_outputs=128, kernel_size=[3, 3], scope='conv2_2')
-#             net = slim.max_pool2d(net, [2, 2], scope='pool2')
-#             # net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3], scope='conv3')
-#             with tf.variable_scope('conv3', default_name='conv3'):
-#                 net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_1')
-#                 net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_2')
-#                 net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_3')
-#             net = slim.max_pool2d(net, [2, 2], scope='pool3')
-#             # net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv4')
-#             with tf.variable_scope('conv4', default_name='conv4'):
-#                 net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_1')
-#                 net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_2')
-#                 net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_3')
-#             net = slim.max_pool2d(net, [2, 2], scope='pool4')
-#             # net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3], scope='conv5')
-#             with tf.variable_scope('conv5', default_name='conv5'):
-#                 net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_1')
-#                 net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_2')
-#                 net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_3')
-#             net = slim.max_pool2d(net, [2, 2], scope='pool5')
-#
-#             # Use conv2d instead of fully_connected layers.
-#             net = slim.conv2d(net, 4096, [7, 7], padding=fc_conv_padding, scope='fc6')
-#             net = slim.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout6')
-#             net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
-#
-#             net = slim.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout7')
-#             net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
-#             logits = tf.squeeze(net, [1, 2], name='fc8/squeezed')
-#             # softmax
-#             logit = slim.softmax(logits=logits, scope='Predict')
-#
-#     with tf.Session() as sess:
-#         # inputs = tf.random_uniform(shape=(6, 224, 224, 3))
-#
-#         sess.run(tf.global_variables_initializer())
-#
-#         graph = tf.get_default_graph()
-#         # get model variable
-#         model_variable = tf.model_variables()
-#         for var in model_variable:
-#             print(var.name, var.shape)
 

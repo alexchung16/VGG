@@ -10,18 +10,18 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import tensorflow as tf
 # from VGG16.VGG16 import VGG16
-from VGG16.VGG16_slim import VGG16
+from VGG16_Tensorflow.VGG16_slim import VGG16
 import numpy as np
-from DataProcess.read_TFRecord import reader_tfrecord, get_num_samples
+from DataProcess.read_TFRecord import dataset_tfrecord, get_num_samples
 from tensorflow.python.framework import graph_util
 
 
-original_dataset_dir = '/home/alex/Documents/datasets/flower_photos_separate'
+original_dataset_dir = '/home/alex/Documents/dataset/flower_photos'
 tfrecord_dir = os.path.join(original_dataset_dir, 'tfrecord')
 
-train_path = os.path.join(original_dataset_dir, 'train')
-test_path = os.path.join(original_dataset_dir, 'test')
-record_file = os.path.join(tfrecord_dir, 'image.tfrecords')
+train_data_path = os.path.join(tfrecord_dir, 'train')
+test_data_path = os.path.join(tfrecord_dir, 'test')
+
 model_path = os.path.join(os.getcwd(), 'model')
 model_name = os.path.join(model_path, 'vgg16.pb')
 pretrain_model_dir = '/home/alex/Documents/pretraing_model/vgg16/vgg16.ckpt'
@@ -34,16 +34,17 @@ flags.DEFINE_integer('height', 224, 'Number of height size.')
 flags.DEFINE_integer('width', 224, 'Number of width size.')
 flags.DEFINE_integer('depth', 3, 'Number of depth size.')
 flags.DEFINE_integer('num_classes', 5, 'Number of image class.')
-flags.DEFINE_integer('batch_size', 128, 'Batch size Must divide evenly into the dataset sizes.')
+flags.DEFINE_integer('batch_size', 16, 'Batch size Must divide evenly into the dataset sizes.')
 flags.DEFINE_integer('epoch', 30, 'Number of epoch size.')
-flags.DEFINE_float('learning_rate', 1e-3, 'Initial learning rate.')
-flags.DEFINE_float('decay_rate', 1.0, 'Number of learning decay rate.')
+flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
+flags.DEFINE_float('decay_rate', 0.9, 'Number of learning decay rate.')
 flags.DEFINE_integer('num_epoch_per_decay', 2, 'Number epoch after each leaning rate decapy.')
-flags.DEFINE_float('keep_prop', 0.8, 'Number of probability that each element is kept.')
+flags.DEFINE_float('keep_prop', 1.0, 'Number of probability that each element is kept.')
 flags.DEFINE_float('weight_decay', 0.00005, 'Number of regular scale size')
 flags.DEFINE_bool('is_pretrain', True, 'if True, use pretrain model.')
 flags.DEFINE_string('pretrain_model_dir', pretrain_model_dir, 'pretrain model dir.')
-flags.DEFINE_string('train_dir', record_file, 'Directory to put the training data.')
+flags.DEFINE_string('train_data_dir', train_data_path, 'Directory to put the training data.')
+flags.DEFINE_string('test_data_dir', test_data_path, 'Directory to put the training data.')
 flags.DEFINE_string('logs_dir', logs_dir, 'direct of summary logs.')
 
 # pretrain model path
@@ -84,7 +85,7 @@ def predict(model_name, image_data, input_op_name, predict_op_name):
 
 if __name__ == "__main__":
 
-    num_samples = get_num_samples(record_file=record_file)
+    num_samples = get_num_samples(record_dir=FLAGS.train_data_dir)
     # approximate samples per epoch
     approx_sample = int((num_samples // FLAGS.batch_size) * FLAGS.batch_size)
     max_step = int((FLAGS.epoch * approx_sample) // FLAGS.batch_size)
@@ -100,23 +101,28 @@ if __name__ == "__main__":
                 weight_decay=FLAGS.weight_decay,
                 is_pretrain=FLAGS.is_pretrain)
 
-    images, labels, filenames = reader_tfrecord(record_file=FLAGS.train_dir,
-                                                batch_size=FLAGS.batch_size,
-                                                input_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
-                                                class_depth=FLAGS.num_classes,
-                                                epoch=FLAGS.epoch,
-                                                shuffle=True)
+    train_images, train_labels, train_filenames = dataset_tfrecord(record_file=FLAGS.train_data_dir,
+                                                                  batch_size=FLAGS.batch_size,
+                                                                  input_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
+                                                                  class_depth=FLAGS.num_classes,
+                                                                  epoch=FLAGS.epoch,
+                                                                  shuffle=True)
 
     init_op = tf.group(
         tf.global_variables_initializer(),
         tf.local_variables_initializer()
     )
+
+    # os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+    config = tf.ConfigProto()
+    # config.gpu_options.per_process_gpu_memory_fraction = 0.5  # maximun alloc gpu50% of MEM
+    config.gpu_options.allow_growth = True
     # train and save model
-    sess = tf.Session()
-    with sess.as_default():
+    with tf.Session(config=config) as sess:
         sess.run(init_op)
         # get computer graph
         graph = tf.get_default_graph()
+
         write = tf.summary.FileWriter(logdir=FLAGS.logs_dir, graph=graph)
         # get model variable of network
         model_variable = tf.model_variables()
@@ -138,6 +144,7 @@ if __name__ == "__main__":
                 [model_variable.remove(var) for var in variables]
             saver = tf.train.Saver(var_list=model_variable)
             saver.restore(sess, save_path=FLAGS.pretrain_model_dir)
+            print('Successful load pretrain model from {0}'.format(FLAGS.pretrain_model_dir))
 
         # print(sess.run('vgg_16/conv1/conv1_1/biases:0'))
         coord = tf.train.Coordinator()
@@ -148,7 +155,7 @@ if __name__ == "__main__":
                 step_epoch = 0
                 for step in range(max_step):
 
-                    image, label, filename = sess.run([images, labels, filenames])
+                    image, label, filename = sess.run([train_images, train_labels, train_filenames])
 
                     feed_dict = vgg.fill_feed_dict(image_feed=image, label_feed=label, is_training=True)
 
