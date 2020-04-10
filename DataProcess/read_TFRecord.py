@@ -22,7 +22,7 @@ train_path = os.path.join(original_dataset_dir, 'train')
 test_path = os.path.join(original_dataset_dir, 'test')
 
 
-def parse_example(serialized_sample, input_shape, class_depth, is_training=False):
+def parse_example(serialized_sample, input_shape, class_depth, is_training=False, fast_mode=True, preprocessing_type='vgg'):
     """
     parse tensor
     :param image_sample:
@@ -58,7 +58,8 @@ def parse_example(serialized_sample, input_shape, class_depth, is_training=False
     # second step dataset operation
 
     # image augmentation
-    image = augmentation_image(image=image, image_shape=input_shape, is_training=is_training)
+    image = augmentation_image(image=image, image_shape=input_shape, preprocessing_type=preprocessing_type,
+                               fast_mode=fast_mode, is_training=is_training,)
     # onehot label
     label = tf.one_hot(indices=label, depth=class_depth)
 
@@ -97,7 +98,7 @@ def augmentation_image(image, image_shape, flip_lr=False, flip_ud=False, brightn
             # resize_img = aspect_preserve_resize(input_image, resize_side_min=np.rint(image_shape[0] * 1.04),
             #                                    resize_side_max=np.rint(image_shape[0] * 2.08), is_training=is_training)
             resize_img = aspect_preserve_resize(image, resize_side_min=256,
-                                                resize_side_max=512, is_training=is_training)
+                                                resize_side_max=288, is_training=is_training)
 
             # crop image
             distort_img = image_crop(resize_img, image_shape[0], image_shape[1], is_training = is_training)
@@ -336,7 +337,8 @@ def distorted_bounding_box_crop(image,
 
 
 
-def dataset_tfrecord(record_file, input_shape, class_depth, epoch=5, batch_size=10, shuffle=True, is_training=False):
+def dataset_tfrecord(record_file, input_shape, class_depth, epoch=5, batch_size=10, shuffle=True,
+                    preprocessing_type = 'vgg', fast_mode=True, is_training=False):
     """
     construct iterator to read image
     :param record_file:
@@ -359,7 +361,9 @@ def dataset_tfrecord(record_file, input_shape, class_depth, epoch=5, batch_size=
     # parse_img_dataset = raw_img_dataset.map(parse_example)
     # when parse_example has more than one parameter which used to process data
     parse_img_dataset = raw_img_dataset.map(lambda series_record:
-                                            parse_example(series_record, input_shape, class_depth, is_training=is_training))
+                                            parse_example(series_record, input_shape, class_depth,
+                                                          preprocessing_type = preprocessing_type,
+                                                          fast_mode=fast_mode, is_training=is_training))
     # get dataset batch
     if shuffle:
         shuffle_batch_dataset = parse_img_dataset.shuffle(buffer_size=batch_size*4).repeat(epoch).batch(batch_size=batch_size)
@@ -376,7 +380,7 @@ def dataset_tfrecord(record_file, input_shape, class_depth, epoch=5, batch_size=
 
 
 def reader_tfrecord(record_file, input_shape, class_depth, batch_size=10, num_threads=2, epoch=5, shuffle=True,
-                    is_training=False):
+                    preprocessing_type='vgg', fast_mode=True, is_training=False):
     """
     read and sparse TFRecord
     :param record_file:
@@ -398,6 +402,7 @@ def reader_tfrecord(record_file, input_shape, class_depth, batch_size=10, num_th
 
     # parse sample
     image, label, filename = parse_example(serialized_sample, input_shape=input_shape, class_depth=class_depth,
+                                           fast_mode=fast_mode, preprocessing_type=preprocessing_type,
                                            is_training=is_training)
 
     if shuffle:
