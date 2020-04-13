@@ -30,9 +30,12 @@ class VGG16():
         self.keep_prob = keep_prob
         # self.initializer = tf.random_normal_initializer(stddev=0.1)
         # add placeholder (X,label)
-        self.raw_input_data = tf.placeholder(tf.float32, shape=[None, input_shape[0], input_shape[1], input_shape[2]], name="input_images")
+        self.raw_input_data = tf.placeholder(tf.float32, shape=[None, input_shape[0], input_shape[1], input_shape[2]],
+                                             name="input_images")
         # y [None,num_classes]
         self.raw_input_label = tf.placeholder(tf.float32, shape=[None, self.num_classes], name="class_label")
+        # keep_prob
+        self.keep_prob = tf.placeholder(tf.float32, shape=(), name="keep_prob")
 
 
         self.global_step = tf.train.create_global_step()
