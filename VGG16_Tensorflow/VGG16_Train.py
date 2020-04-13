@@ -8,6 +8,7 @@
 import os
 import cv2 as cv
 import matplotlib.pyplot as plt
+from datetime import datetime
 import tensorflow as tf
 # from VGG16.VGG16 import VGG16
 from VGG16_Tensorflow.VGG16_slim import VGG16
@@ -23,7 +24,6 @@ train_data_path = os.path.join(tfrecord_dir, 'train')
 test_data_path = os.path.join(tfrecord_dir, 'test')
 
 model_path = os.path.join(os.getcwd(), 'model')
-model_name = os.path.join(model_path, 'vgg16.pb')
 pretrain_model_dir = '/home/alex/Documents/pretraing_model/vgg16/vgg16.ckpt'
 logs_dir = os.path.join(os.getcwd(), 'logs')
 
@@ -36,7 +36,7 @@ flags.DEFINE_integer('depth', 3, 'Number of depth size.')
 flags.DEFINE_integer('num_classes', 5, 'Number of image class.')
 flags.DEFINE_integer('batch_size', 16, 'Batch size Must divide evenly into the dataset sizes.')
 flags.DEFINE_integer('epoch', 30, 'Number of epoch size.')
-flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
+flags.DEFINE_float('learning_rate', 0.0001, 'Initial learning rate.')
 flags.DEFINE_float('decay_rate', 0.9, 'Number of learning decay rate.')
 flags.DEFINE_integer('num_epoch_per_decay', 2, 'Number epoch after each leaning rate decapy.')
 flags.DEFINE_float('keep_prop', 1.0, 'Number of probability that each element is kept.')
@@ -49,6 +49,21 @@ flags.DEFINE_string('logs_dir', logs_dir, 'direct of summary logs.')
 
 # pretrain model path
 model_dir = '/home/alex/Documents/pretraing_model/vgg16'
+
+
+def makedir(path):
+    """
+    create dir
+    :param path:
+    :return:
+    """
+    a = os.path.exists(path)
+    if os.path.exists(path) is False:
+        try:
+            os.makedirs(path)
+            print('{0} has been created'.format(path))
+        except Exception as e:
+            print(e)
 
 
 def predict(model_name, image_data, input_op_name, predict_op_name):
@@ -78,35 +93,45 @@ def predict(model_name, image_data, input_op_name, predict_op_name):
         input = sess.graph.get_tensor_by_name(name=input_op_name)
         output = sess.graph.get_tensor_by_name(name=predict_op_name)
 
-        predict_softmax = sess.run(fetches=output, feed_dict={input: image})
-        predict_label = np.argmax(predict_softmax, axis=1)
+        predict = sess.run(fetches=output, feed_dict={input: image})
+        predict_label = np.argmax(predict, axis=1)
         return predict_label
 
 
 if __name__ == "__main__":
 
-    num_samples = get_num_samples(record_dir=FLAGS.train_data_dir)
+    num_train_samples = get_num_samples(record_dir=FLAGS.train_data_dir)
+    num_val_samples = get_num_samples(record_dir=FLAGS.test_data_dir)
     # approximate samples per epoch
-    approx_sample = int((num_samples // FLAGS.batch_size) * FLAGS.batch_size)
+    approx_sample = int((num_train_samples // FLAGS.batch_size) * FLAGS.batch_size)
     max_step = int((FLAGS.epoch * approx_sample) // FLAGS.batch_size)
+    # max_step = int(FLAGS.epch * num_train_samples / FLAGS.batch_size)
 
     vgg = VGG16(input_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
                 num_classes=FLAGS.num_classes,
                 batch_size=FLAGS.batch_size,
                 learning_rate = FLAGS.learning_rate,
                 decay_rate=FLAGS.decay_rate,
-                num_samples_per_epoch=num_samples,
+                num_samples_per_epoch=num_train_samples,
                 num_epoch_per_decay=FLAGS.num_epoch_per_decay,
                 keep_prob=FLAGS.keep_prop,
                 weight_decay=FLAGS.weight_decay,
                 is_pretrain=FLAGS.is_pretrain)
 
-    train_images, train_labels, train_filenames = dataset_tfrecord(record_file=FLAGS.train_data_dir,
+    train_images_batch, train_labels_batch, train_filenames = dataset_tfrecord(record_file=FLAGS.train_data_dir,
                                                                   batch_size=FLAGS.batch_size,
                                                                   input_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
                                                                   class_depth=FLAGS.num_classes,
                                                                   epoch=FLAGS.epoch,
-                                                                  shuffle=True)
+                                                                  shuffle=True,
+                                                                  is_training=True)
+    val_images_batch, val_labels_batch, val_filenames = dataset_tfrecord(record_file=FLAGS.test_data_dir,
+                                                                   batch_size=FLAGS.batch_size,
+                                                                   input_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
+                                                                   class_depth=FLAGS.num_classes,
+                                                                   epoch=FLAGS.epoch,
+                                                                   shuffle=True,
+                                                                   is_training=False)
 
     init_op = tf.group(
         tf.global_variables_initializer(),
@@ -117,6 +142,7 @@ if __name__ == "__main__":
     config = tf.ConfigProto()
     # config.gpu_options.per_process_gpu_memory_fraction = 0.5  # maximun alloc gpu50% of MEM
     config.gpu_options.allow_growth = True
+
     # train and save model
     with tf.Session(config=config) as sess:
         sess.run(init_op)
@@ -151,23 +177,47 @@ if __name__ == "__main__":
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         try:
             if not coord.should_stop():
+
+                # ++++++++++++++++++++++++++++++++++start training+++++++++++++++++++++++++++++++++++++++++++++++++
                 # used to count the step per epoch
                 step_epoch = 0
+                print('Epoch: {0}/{1}'.format(0, FLAGS.epoch))
                 for step in range(max_step):
+                    train_image, train_label = sess.run([train_images_batch, train_labels_batch])
 
-                    image, label, filename = sess.run([train_images, train_labels, train_filenames])
+                    feed_dict = vgg.fill_feed_dict(image_feed=train_image, label_feed=train_label, is_training=True)
 
-                    feed_dict = vgg.fill_feed_dict(image_feed=image, label_feed=label, is_training=True)
-
-                    _, loss_value, train_accuracy, summary = sess.run(fetches=[vgg.train, vgg.loss, vgg.accuracy, summary_op],
+                    _, train_loss, train_accuracy, summary = sess.run(fetches=[vgg.train, vgg.loss, vgg.accuracy, summary_op],
                                                              feed_dict=feed_dict)
 
                     epoch = int(step * FLAGS.batch_size / approx_sample + 1)
+                    # print training info
+                    print('\tstep {0}:loss value {1}  train accuracy {2}'.format(step_epoch, train_loss, train_accuracy))
+
                     step_epoch += 1
-                    if step * FLAGS.batch_size % approx_sample == 0:
+                    if (step + 1) * FLAGS.batch_size % approx_sample == 0:  # complete training of epoch
                         print('Epoch: {0}/{1}'.format(epoch, FLAGS.epoch))
+                        # ++++++++++++++++++++++++++++++++execute validation++++++++++++++++++++++++++++++++++++++++++++
+                        # execute validation when complete every epoch
+                        # validation use with all validation dataset
+                        val_losses = []
+                        val_accuracies = []
+                        val_max_steps = int(num_val_samples / FLAGS.batch_size)
+                        for _ in range(val_max_steps):
+                            val_images, val_labels = sess.run([val_images_batch, val_labels_batch])
+
+                            feed_dict = vgg.fill_feed_dict(image_feed=val_images, label_feed=val_labels, is_training=False)
+
+                            val_loss, val_acc = sess.run([vgg.loss, vgg.accuracy], feed_dict=feed_dict)
+
+                            val_losses.append(val_loss)
+                            val_accuracies.append(val_acc)
+                        mean_loss = np.array(val_losses, dtype=np.float32).mean()
+                        mean_acc = np.array(val_accuracies, dtype=np.float32).mean()
+
+                        print("\t{0}: epoch {1}  val Loss : {2}, val accuracy :  {3}".format(datetime.now(), epoch,
+                                                                                           mean_loss, mean_acc))
                         step_epoch = 0
-                    print('step {0}:loss value {1}  train accuracy {2}'.format(step_epoch, loss_value, train_accuracy))
 
                     write.add_summary(summary=summary, global_step=step)
                 write.close()
@@ -182,7 +232,8 @@ if __name__ == "__main__":
                                                                               [input_op.split(':')[0],
                                                                                logit_op.split(':')[0]])
                 # save to serialize file
-                with tf.gfile.FastGFile(name=model_name, mode='wb') as f:
+                makedir(model_dir)
+                with tf.gfile.FastGFile(name=os.path.join(model_dir, 'model.pb'), mode='wb') as f:
                     f.write(constant_graph.SerializeToString())
 
         except Exception as e:
