@@ -14,7 +14,7 @@ class VGG16():
     """
     VGG16 model
     """
-    def __init__(self, input_shape, num_classes, batch_size, decay_rate, learning_rate,keep_prob=0.5,
+    def __init__(self, input_shape, num_classes, batch_size, decay_rate, learning_rate, keep_prob=0.8,
                  weight_decay=0.00005, num_samples_per_epoch=None, num_epoch_per_decay=None, is_pretrain=False):
         self.num_classes = num_classes
         self.batch_size = batch_size
@@ -49,7 +49,7 @@ class VGG16():
         self.loss = self.losses(labels=self.raw_input_label, logits=self.logits, name='loss')
         # train operation
         self.train = self.training(self.learning_rate, self.global_step)
-        self.accuracy = self.evaluate_batch(logits=self.logits, labels=self.raw_input_label) / self.batch_size
+        self.accuracy = self.evaluate(logits=self.logits, labels=self.raw_input_label)
 
     def inference(self, inputs, name):
         """
@@ -175,7 +175,7 @@ class VGG16():
             cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels, name='entropy')
             return tf.reduce_mean(input_tensor=cross_entropy, name='loss')
 
-    def evaluate_batch(self, logits, labels):
+    def evaluate(self, logits, labels):
         """
         evaluate one batch correct num
         :param logits:
@@ -183,7 +183,7 @@ class VGG16():
         :return:
         """
         correct_predict = tf.equal(tf.argmax(input=logits, axis=1), tf.argmax(input=labels, axis=1))
-        return tf.reduce_sum(tf.cast(correct_predict, dtype=tf.int32))
+        return tf.reduce_mean(tf.cast(correct_predict, dtype=tf.float32))
 
     def fill_feed_dict(self, image_feed, label_feed, is_training):
         feed_dict = {
