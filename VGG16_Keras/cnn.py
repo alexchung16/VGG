@@ -9,6 +9,7 @@ import os
 import pickle
 import shutil
 import keras
+import tensorflow as tf
 from keras import layers
 from keras import models
 from keras import optimizers, losses, metrics
@@ -18,6 +19,12 @@ from keras.preprocessing.image import ImageDataGenerator
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from keras.applications import vgg16
+
+# tensorflow backend config
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+keras.backend.set_session(tf.Session(config=config))
+
 
 # model path
 model_path = os.path.join(os.getcwd(), 'model')
@@ -29,9 +36,10 @@ tb_path = os.path.join(os.getcwd(), 'logs')
 
 
 # origin dataset
-original_dataset_dir = '/home/alex/Documents/datasets/dogs-vs-cats/train'
+original_dataset_dir = '/home/alex/Documents/dataset/dogs-vs-cats/train'
 # separate dataset
-base_dir = '/home/alex/Documents/datasets/dogs_and_cat_separate'
+base_dir = '/home/alex/Documents/dataset/dogs_vs_cat_separate'
+
 
 # train dataset
 train_dir = os.path.join(base_dir, 'train')
@@ -138,9 +146,11 @@ def separateDataset(cat_dst_dir, dog_dst_dir, cat_frame_list, dog_frame_list):
 
 
 # image preprocessing
-def imagePreprocessing():
+def imagePreprocessing(train_dir, val_dir, batch_size, target_size=(150, 150)):
     """
     image preprocessing
+    :param batch_size:
+    :param shape:
     :return:
     """
     train_data_generate = ImageDataGenerator(rescale=1./255)
@@ -148,22 +158,22 @@ def imagePreprocessing():
 
     train_generator = train_data_generate.flow_from_directory(
         directory=train_dir,
-        target_size=(150, 150),
-        batch_size=40,
+        target_size=target_size,
+        batch_size=batch_size,
         class_mode='categorical'
     )
 
     val_generator = val_data_generate.flow_from_directory(
         directory=val_dir,
-        target_size=(150, 150),
-        batch_size=40,
+        target_size=target_size,
+        batch_size=batch_size,
         class_mode='categorical'
     )
 
     return train_generator, val_generator
 
 
-def imageAugmentation():
+def imageAugmentation(train_dir, val_dir, target_size=(150, 150), batch_size=16):
     """
     image data augmentation
     Note： Only augmentation train dataset but validation dataset
@@ -183,15 +193,15 @@ def imageAugmentation():
 
     train_generator = train_data_generate.flow_from_directory(
         directory=train_dir,
-        target_size=(150, 150),
-        batch_size=32,
+        target_size=target_size,
+        batch_size=batch_size,
         class_mode='categorical'
     )
 
     val_generator = val_data_generate.flow_from_directory(
         directory=val_dir,
-        target_size=(150, 150),
-        batch_size=32,
+        target_size=target_size,
+        batch_size=batch_size,
         class_mode='categorical'
     )
 
@@ -319,6 +329,7 @@ def loadData(data_name):
 
 
 if __name__ == "__main__":
+
     # tensorboard
     tb_cb = keras.callbacks.TensorBoard(log_dir=tb_path, histogram_freq=1, write_images=1)
     # 构建数据
@@ -343,9 +354,9 @@ if __name__ == "__main__":
     # model
     model = cnnNet()
     print(model.summary())
-    weight, bias = model.get_layer(name='conv2d_1').get_weights()
-    print(weight.shape)
-    print(weight)
+    # weight, bias = model.get_layer(name='conv2d_1').get_weights()
+    # print(weight.shape)
+    # print(weight)
     # print(model.summary())
     model.compile(
         optimizer=optimizers.RMSprop(lr=1e-4),
@@ -353,7 +364,11 @@ if __name__ == "__main__":
         metrics=['accuracy']
     )
 
-    train_generator, val_generator = imagePreprocessing()
+    # train_generator, val_generator = imagePreprocessing(train_dir=train_dir, val_dir=val_dir, batch_size=16,
+    #                                                     shape=(150, 150))
+
+    train_generator, val_generator = imageAugmentation(train_dir=train_dir, val_dir=val_dir, batch_size=16,
+                                                        target_size=(150, 150))
     history = model.fit_generator(
         generator=train_generator,
         steps_per_epoch=100,
