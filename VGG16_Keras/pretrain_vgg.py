@@ -9,11 +9,20 @@
 import os
 import pickle
 import numpy as np
+import keras
+import tensorflow as tf
 import matplotlib.pyplot as plt
 from keras.applications import VGG16
 from keras import models, layers
 from keras import optimizers, losses
 from keras_preprocessing.image import ImageDataGenerator
+
+
+# tensorflow backend config
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+keras.backend.set_session(tf.Session(config=config))
+
 
 # model path
 model_path = os.path.join(os.getcwd(), 'model')
@@ -23,7 +32,7 @@ data_path = os.path.join(os.getcwd(), 'data')
 # origin dataset
 original_dataset_dir = '/home/alex/Documents/datasets/dogs-vs-cats/train'
 # separate dataset
-base_dir = '/home/alex/Documents/datasets/dogs_and_cat_separate'
+base_dir = '/home/alex/Documents/dataset/dogs_vs_cat_separate'
 
 # train dataset
 train_dir = os.path.join(base_dir, 'train')
@@ -82,7 +91,7 @@ def extract_feature(datasets_dir, sample_count):
             break
     return feature, labels
 
-def imageAugmentation():
+def imageAugmentation(train_dir, val_dir, batch_size=16, target_size=(150, 150)):
     """
     image data augmentation
     Note： Only augmentation train dataset but validation dataset
@@ -102,15 +111,15 @@ def imageAugmentation():
 
     train_generator = train_data_generate.flow_from_directory(
         directory=train_dir,
-        target_size=(150, 150),
-        batch_size=32,
+        target_size=target_size,
+        batch_size=batch_size,
         class_mode='binary'
     )
 
     val_generator = val_data_generate.flow_from_directory(
         directory=val_dir,
-        target_size=(150, 150),
-        batch_size=32,
+        target_size=target_size,
+        batch_size=batch_size,
         class_mode='binary'
     )
 
@@ -242,7 +251,8 @@ if __name__ == "__main__":
 
     # method 2 by end to end cnn
     # owe into use augmentation image
-    train_generator, val_generator = imageAugmentation()
+    train_generator, val_generator = imageAugmentation(train_dir=train_dir, val_dir=val_dir, target_size=(150, 150),
+                                                       batch_size=16)
 
     # struct dense layer
     # method 1
@@ -252,6 +262,7 @@ if __name__ == "__main__":
     # method 3
     model = vgg16FineTuneConvBaseNet()
 
+    print(conv_base.summary())
     print(model.summary())
 
     model.compile(optimizer=optimizers.RMSprop(lr=1e-5),
