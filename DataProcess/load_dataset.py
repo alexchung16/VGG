@@ -33,6 +33,8 @@ def get_file_label(data_dir, class_name=None):
     image_file = []
     label_file = []
     data_dir = pathlib.Path(data_dir)
+
+    # get class name
     if class_name is None:
         class_name = np.array([item.name for item in data_dir.glob('*') if item.is_dir()])
 
@@ -122,25 +124,43 @@ def prepare_batch(data_dir, batch_size=32, epoch=10, class_name=None, img_shape=
     return dataset.make_one_shot_iterator()
 
 
+def show_batch(image_batch, label_batch, class_name):
+    """
+
+    :param image: (None, Height, Width, Channel)
+    :param label: (None, depth)
+    :param class_name: list
+    :return:
+    """
+    plt.figure(figsize=(10, 10))
+    for n in range(25):
+        ax = plt.subplot(5, 5, n + 1)
+        plt.imshow(image_batch[n])
+        plt.title(np.array(class_name)[label_batch[n] == 1][0].title())
+        plt.axis('off')
+    plt.show()
+
+
+
+
 if __name__ == "__main__":
 
     data_dir = pathlib.Path(data_dir)
     image_count = len(list(data_dir.glob('*/*.jpg'))) # 3670
     class_name = np.array([item.name for item in data_dir.glob('*') if item.is_dir()])
-    print(class_name)
+    print(class_name)  # ['sunflowers' 'roses' 'dandelion' 'daisy' 'tulips']
 
     list_dataset = tf.data.Dataset.list_files(str(data_dir / '*/*'))
 
 
-    dataset_iterator = prepare_batch(data_dir)
+    dataset_iterator = prepare_batch(data_dir, batch_size=32, class_name=class_name)
     with tf.Session() as sess:
 
         train_image_batch, train_label_batch = dataset_iterator.get_next()
         train_image, train_label = sess.run([train_image_batch, train_label_batch])
 
-        print(train_image.shape, train_label.shape)
-        plt.imshow(train_image[0])
-        plt.show()
+        show_batch(train_image, train_label, class_name)
+
 
 
 
