@@ -107,14 +107,14 @@ def prepare_batch(data_dir, batch_size=32, epoch=10, class_name=None, img_shape=
     # # cache
     # dataset.cache()
 
-    # 此时dataset中的一个元素是(image_resized, label)
+    # input parameter by map
     dataset = dataset.map(lambda img_name, img_label: parse_image_label(image=img_name,
                                                                         label=img_label,
                                                                         img_shape=img_shape,
                                                                         label_depth=label_depth,
                                                                         convert_scale=convert_scale))
 
-    # 此时dataset中的一个元素是(image_resized_batch, label_batch)
+    # shuffle batch_size epoch
     dataset = dataset.shuffle(buffer_size=batch_size * 100).batch(batch_size).repeat(epoch)
 
     # lets the dataset fetch batches in the background while the model is training.
