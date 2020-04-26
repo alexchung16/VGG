@@ -17,11 +17,9 @@ import tensorflow as tf
 from sklearn.preprocessing import LabelEncoder
 import cv2 as cv
 
-original_dataset_dir = '/home/alex/Documents/dataset/dogs_vs_cat_separate'
+original_dataset_dir = '/home/alex/Documents/dataset/flower_photos'
 tfrecord_dir = os.path.join(original_dataset_dir, 'tfrecord')
 
-train_path = os.path.join(original_dataset_dir, 'train')
-test_path = os.path.join(original_dataset_dir, '100')
 
 
 def makedir(path):
@@ -30,7 +28,6 @@ def makedir(path):
     :param path:
     :return:
     """
-    a = os.path.exists(path)
     if os.path.exists(path) is False:
         try:
             os.makedirs(path)
@@ -40,44 +37,46 @@ def makedir(path):
 
 #+++++++++++++++++++++++++++++++++++++++++generate tfrecord+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-def execute_tfrecord(source_path, outputs_path, split_ratio=0.2, per_record_capacity=500, shuffle=True):
+def execute_tfrecord(source_path, outputs_path, per_record_capacity=500, shuffle=True):
     """
 
     :param source_path:
     :param outputs_path:
     :param split_ratio:
+    :param per_record_capacity:
     :param shuffle:
     :return:
     """
-    # create tfrecord path
-    train_record_path = os.path.join(outputs_path, 'train')
-    test_record_path = os.path.join(outputs_path, 'test')
-    makedir(train_record_path)
-    makedir(test_record_path)
 
     img_names, img_labels, classes_map = get_label_data(source_path, shuffle=shuffle)
 
+    # create tfrecord path
+    record_path = os.path.join(outputs_path, 'train')
+    # test_record_path = os.path.join(outputs_path, 'test')
+    makedir(record_path)
+    # makedir(test_record_path)
+
     num_samples = len(img_names)
-    test_data_num = int(num_samples * split_ratio)
-    train_data_num = num_samples - test_data_num
+    # test_data_num = int(num_samples * split_ratio)
+    # train_data_num = num_samples - test_data_num
+    #
+    # train_name_list = img_names[:train_data_num]
+    # train_labels_list = img_labels[:train_data_num]
+    # test_name_list = img_names[train_data_num:]
+    # test_labels_list = img_labels[train_data_num:]
 
-    train_name_list = img_names[:train_data_num]
-    train_labels_list = img_labels[:train_data_num]
-    test_name_list = img_names[train_data_num:]
-    test_labels_list = img_labels[train_data_num:]
-
-    image_to_record(save_path=train_record_path,
-                    img_name_list=train_name_list,
-                    labels_list=train_labels_list,
+    image_to_record(save_path=record_path,
+                    img_name_list=img_names,
+                    labels_list=img_labels,
                     record_capacity=per_record_capacity)
-    print("There are {0} samples has successfully convert to tfrecord, save at {1}".format(train_data_num,
-                                                                                           train_record_path))
-    image_to_record(save_path=test_record_path,
-                    img_name_list=test_name_list,
-                    labels_list=test_labels_list,
-                    record_capacity=per_record_capacity)
-    print("There are {0} samples has successfully convert to tfrecord, save at {1}".format(test_data_num,
-                                                                                           test_record_path))
+    print("There are {0} samples has successfully convert to tfrecord, save at {1}".format(num_samples,
+                                                                                           record_path))
+    # image_to_record(save_path=test_record_path,
+    #                 img_name_list=test_name_list,
+    #                 labels_list=test_labels_list,
+    #                 record_capacity=per_record_capacity)
+    # print("There are {0} samples has successfully convert to tfrecord, save at {1}".format(test_data_num,
+    #                                                                                        test_record_path))
 
 
 def image_to_record(save_path, img_name_list, labels_list=None, record_capacity=500):
@@ -232,6 +231,40 @@ def image_example(image, label, img_height, img_width, img_depth, filename):
     example_proto = tf.train.Example(features=tf.train.Features(feature=feature))
     return example_proto.SerializeToString()
 
+def serialize_example(label, image, filename):
+    """
+    create a tf.Example message to be written to a file
+    :param label: label info
+    :param image: image content
+    :param filename: image name
+    :return:
+    """
+    # create a dict mapping the feature name to the tf.Example compatible
+    feature = {
+        "label": _int64_feature(label),
+        "image": _bytes_feature(image),
+        "filename": _bytes_feature(filename)
+    }
+    # create a feature message using tf.train.Example
+    example_proto = tf.train.Example(features=tf.train.Features(feature=feature))
+    return example_proto.SerializeToString()
+
+def tf_serialize_example(label, image, filename):
+    tf_string = tf.py_function(func=serialize_example,
+                               inp=(label, image, filename),
+                               Tout=tf.string)
+    # the result is scalar
+    return tf.reshape(tf_string, ())
+
+
+def decode_message(message):
+    """
+    decode message from string
+    :param message:
+    :return:
+    """
+    return tf.train.Example.FromString(message)
+
 
 #++++++++++++++++++++++++++++++++++++++++++tfrecord test++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -279,48 +312,12 @@ def tfrecord_test():
     # img_shape = tf.image.decode_jpeg(byte_img)
     # print(image_example(1, byte_img, b'cat'))
 
-def serialize_example(label, image, filename):
-    """
-    create a tf.Example message to be written to a file
-    :param label: label info
-    :param image: image content
-    :param filename: image name
-    :return:
-    """
-    # create a dict mapping the feature name to the tf.Example compatible
-    feature = {
-        "label": _int64_feature(label),
-        "image": _bytes_feature(image),
-        "filename": _bytes_feature(filename)
-    }
-    # create a feature message using tf.train.Example
-    example_proto = tf.train.Example(features=tf.train.Features(feature=feature))
-    return example_proto.SerializeToString()
-
-def tf_serialize_example(label, image, filename):
-    tf_string = tf.py_function(func=serialize_example,
-                               inp=(label, image, filename),
-                               Tout=tf.string)
-    # the result is scalar
-    return tf.reshape(tf_string, ())
-
-
-def decode_message(message):
-    """
-    decode message from string
-    :param message:
-    :return:
-    """
-    return tf.train.Example.FromString(message)
-
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++main+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
 if __name__ == "__main__":
 
-    image_names, labels, classes_name = get_label_data(train_path)
-
-    execute_tfrecord(source_path=train_path, outputs_path=tfrecord_dir)
+    execute_tfrecord(source_path=original_dataset_dir, outputs_path=tfrecord_dir)
 
 
