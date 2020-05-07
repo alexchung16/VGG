@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import tensorflow as tf
 # from VGG16.VGG16 import VGG16
-from VGG16_Tensorflow.tools.VGG16_slim import VGG16
+from VGG16_Tensorflow.nets.VGG16_slim import VGG16
 import numpy as np
 from DataProcess.read_TFRecord import dataset_tfrecord, get_num_samples
 from tensorflow.python.framework import graph_util

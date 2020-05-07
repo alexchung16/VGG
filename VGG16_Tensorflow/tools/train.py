@@ -15,7 +15,7 @@ import os
 import numpy as np
 from datetime import datetime
 import tensorflow as tf
-from VGG16_Tensorflow.tools.VGG16 import VGG16
+from VGG16_Tensorflow.nets.VGG16 import VGG16
 
 from DataProcess.load_dataset import dataset_batch, get_samples
 
