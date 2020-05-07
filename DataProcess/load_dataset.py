@@ -17,7 +17,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import pathlib
 
-from DataProcess.vgg_preprocessing import preprocess_for_train
+from DataProcess.vgg_preprocessing import preprocess_image
 
 data_dir = '/home/alex/Documents/dataset/flower_photos'
 
@@ -56,7 +56,7 @@ def get_file_label(data_dir, class_name=None):
 
     return shuffle_image, shuffle_label
 
-def parse_image_label(image, label, img_shape=(224, 224), label_depth=5, convert_scale=False):
+def parse_image_label(image, label, img_shape=(224, 224), label_depth=5, convert_scale=False, is_training=False):
     """
     parse and preprocess image label
     :param image:
@@ -77,7 +77,7 @@ def parse_image_label(image, label, img_shape=(224, 224), label_depth=5, convert
     #     image = tf.image.convert_image_dtype(image, tf.float32)
     # # resize the image to the desired size.
     # image = tf.image.resize(image, img_shape)
-    image = preprocess_for_train(image, img_shape[0], img_shape[1])
+    image = preprocess_image(image, img_shape[0], img_shape[1], is_training=is_training)
     # # convert dtype to tf.uint8
     # image = tf.cast(image, dtype=tf.uint8)
     label = tf.one_hot(label, depth=label_depth, on_value=1)
@@ -87,7 +87,7 @@ def parse_image_label(image, label, img_shape=(224, 224), label_depth=5, convert
 
 
 def dataset_batch(data_dir, batch_size=32, epoch=10, class_name=None, img_shape=(224, 224), label_depth=5,
-                  convert_scale=True):
+                  convert_scale=True, is_training=False):
     """
     create dataset iterator
     :param data_dir:
@@ -115,10 +115,11 @@ def dataset_batch(data_dir, batch_size=32, epoch=10, class_name=None, img_shape=
                                                                         label=img_label,
                                                                         img_shape=img_shape,
                                                                         label_depth=label_depth,
-                                                                        convert_scale=convert_scale))
+                                                                        convert_scale=convert_scale,
+                                                                        is_training=is_training))
 
     # shuffle batch_size epoch
-    dataset = dataset.shuffle(buffer_size=batch_size * 100).batch(batch_size).repeat(epoch)
+    dataset = dataset.shuffle(buffer_size=batch_size * 4).batch(batch_size).repeat(epoch)
 
     # lets the dataset fetch batches in the background while the model is training.
     dataset = dataset.prefetch(buffer_size=batch_size * 10)
@@ -177,7 +178,11 @@ def show_batch(image_batch, label_batch, class_name):
         plt.axis('off')
     plt.show()
 
+def get_samples(data_dir):
+    data_dir = pathlib.Path(data_dir)
+    image_count = len(list(data_dir.glob('*/*.jpg')))
 
+    return image_count
 
 if __name__ == "__main__":
 
