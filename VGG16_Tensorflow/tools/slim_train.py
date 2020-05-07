@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 import tensorflow as tf
 # from VGG16.VGG16 import VGG16
-from VGG16_Tensorflow.VGG16_slim import VGG16
+from VGG16_Tensorflow.tools.VGG16_slim import VGG16
 import numpy as np
 from DataProcess.read_TFRecord import dataset_tfrecord, get_num_samples
 from tensorflow.python.framework import graph_util
@@ -34,9 +34,9 @@ flags.DEFINE_integer('height', 224, 'Number of height size.')
 flags.DEFINE_integer('width', 224, 'Number of width size.')
 flags.DEFINE_integer('depth', 3, 'Number of depth size.')
 flags.DEFINE_integer('num_classes', 5, 'Number of image class.')
-flags.DEFINE_integer('batch_size', 16, 'Batch size Must divide evenly into the dataset sizes.')
+flags.DEFINE_integer('batch_size', 32, 'Batch size Must divide evenly into the dataset sizes.')
 flags.DEFINE_integer('epoch', 30, 'Number of epoch size.')
-flags.DEFINE_float('learning_rate', 0.0001, 'Initial learning rate.')
+flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
 flags.DEFINE_float('decay_rate', 0.9, 'Number of learning decay rate.')
 flags.DEFINE_integer('num_epoch_per_decay', 2, 'Number epoch after each leaning rate decapy.')
 flags.DEFINE_float('keep_prop', 1.0, 'Number of probability that each element is kept.')
@@ -142,7 +142,6 @@ if __name__ == "__main__":
     config = tf.ConfigProto()
     # config.gpu_options.per_process_gpu_memory_fraction = 0.5  # maximun alloc gpu50% of MEM
     config.gpu_options.allow_growth = True
-
     # train and save model
     with tf.Session(config=config) as sess:
         sess.run(init_op)
@@ -181,7 +180,7 @@ if __name__ == "__main__":
                 # ++++++++++++++++++++++++++++++++++start training+++++++++++++++++++++++++++++++++++++++++++++++++
                 # used to count the step per epoch
                 step_epoch = 0
-                print('Epoch: {0}/{1}'.format(0, FLAGS.epoch))
+                print('Epoch: {0}/{1}'.format(step_epoch, FLAGS.epoch))
                 for step in range(max_step):
                     train_image, train_label = sess.run([train_images_batch, train_labels_batch])
 
@@ -196,7 +195,7 @@ if __name__ == "__main__":
 
                     step_epoch += 1
                     if (step + 1) * FLAGS.batch_size % approx_sample == 0:  # complete training of epoch
-                        print('Epoch: {0}/{1}'.format(epoch, FLAGS.epoch))
+
                         # ++++++++++++++++++++++++++++++++execute validation++++++++++++++++++++++++++++++++++++++++++++
                         # execute validation when complete every epoch
                         # validation use with all validation dataset
@@ -217,6 +216,7 @@ if __name__ == "__main__":
 
                         print("\t{0}: epoch {1}  val Loss : {2}, val accuracy :  {3}".format(datetime.now(), epoch,
                                                                                            mean_loss, mean_acc))
+                        print('Epoch: {0}/{1}'.format(epoch, FLAGS.epoch))
                         step_epoch = 0
 
                     write.add_summary(summary=summary, global_step=step)

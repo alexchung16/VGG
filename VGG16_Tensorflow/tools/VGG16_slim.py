@@ -135,8 +135,8 @@ class VGG16():
         # define trainable variable
         trainable_variable = None
         # trainable_scope = self.trainable_scope
-        # trainable_scope = ['vgg_16/fc6', 'vgg_16/fc7', 'vgg_16/fc8_1', 'vgg_16/fc8_2']
-        trainable_scope = []
+        trainable_scope = ['vgg_16/conv5_1','vgg_16/conv5_2','vgg_16/conv5_3','vgg_16/fc6', 'vgg_16/fc7', 'vgg_16/fc8']
+        # trainable_scope = []
         if self.is_pretrain and trainable_scope:
             trainable_variable = []
             for scope in trainable_scope:
@@ -173,7 +173,9 @@ class VGG16():
         """
         with tf.name_scope(name):
             cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels, name='entropy')
-            return tf.reduce_mean(input_tensor=cross_entropy, name='loss')
+            loss = tf.reduce_mean(input_tensor=cross_entropy, name='loss')
+            tf.summary.scalar("loss", loss)
+            return loss
 
     def evaluate(self, logits, labels):
         """

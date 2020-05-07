@@ -11,7 +11,7 @@ import tensorflow as tf
 import tensorflow.contrib.slim as slim
 
 # pretrain model path
-model_dir = '/home/alex/Documents/pretraing_model/vgg16'
+model_dir = '/home/alex/Documents/pretraining_model/vgg16'
 
 if __name__ == "__main__":
     vgg16_model_npy_path = os.path.join(model_dir, 'vgg16.npy')
@@ -29,10 +29,10 @@ if __name__ == "__main__":
         print(param[0].shape, param[1].shape)
 
 
-    with tf.Session() as sess:
-        # saver.restore(sess, save_path=model_dir+'/')
-        saver = tf.train.Saver()
-        saver.restore(sess, save_path=vgg16_model_ckpt_path)
+    # with tf.Session() as sess:
+    #     # saver.restore(sess, save_path=model_dir+'/')
+    #     saver = tf.train.Saver()
+    #     saver.restore(sess, save_path=vgg16_model_ckpt_path)
 
 
     """

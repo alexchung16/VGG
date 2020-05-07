@@ -11,6 +11,8 @@
 #-------------------------------------------------------
 
 import tensorflow as tf
+import os
+import math
 
 if __name__ == "__main__":
     print(tf.test.is_gpu_available())

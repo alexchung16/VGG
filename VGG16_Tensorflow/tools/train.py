@@ -15,7 +15,7 @@ import os
 import numpy as np
 from datetime import datetime
 import tensorflow as tf
-from VGG16_Tensorflow.VGG16 import VGG16
+from VGG16_Tensorflow.tools.VGG16 import VGG16
 
 from DataProcess.load_dataset import dataset_batch, get_samples
 
@@ -25,8 +25,8 @@ train_dir = '/home/alex/Documents/dataset/flower_split/train'
 val_dir = '/home/alex/Documents/dataset/flower_split/val'
 
 
-save_dir = os.path.join(os.getcwd(), 'model', 'model.ckpt')
-log_dir = os.path.join (os.getcwd(), 'logs')
+save_dir = os.path.join(os.getcwd(), 'outputs' 'model', 'model.ckpt')
+log_dir = os.path.join(os.getcwd(), 'outputs', 'logs')
 
 input_shape = [224, 224, 3]
 num_classes=5
@@ -67,7 +67,6 @@ if __name__ == "__main__":
 
         graph = tf.get_default_graph()
         write = tf.summary.FileWriter(logdir=log_dir, graph=graph)
-
 
         model_variable = tf.global_variables()
         for var in model_variable:
