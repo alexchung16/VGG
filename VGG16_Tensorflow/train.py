@@ -25,33 +25,35 @@ train_dir = '/home/alex/Documents/dataset/flower_split/train'
 val_dir = '/home/alex/Documents/dataset/flower_split/val'
 
 
-
-save_dir = os.path.join(os.getcwd(), 'model')
+save_dir = os.path.join(os.getcwd(), 'model', 'model.ckpt')
 log_dir = os.path.join (os.getcwd(), 'logs')
 
 input_shape = [224, 224, 3]
 num_classes=5
-batch_size=16
-learning_rate=0.01
-keep_prob = 1.0
-epoch = 5
+batch_size=32
+learning_rate=0.001
+keep_prob = 0.8
+epoch = 30
+save_step_period = 2000  # set step period to save model
 
 num_train_samples = get_samples(train_dir)
 num_val_samples = get_samples(val_dir)
 
 if __name__ == "__main__":
 
-    step_per_epoch = num_train_samples // batch_size
+    step_per_epoch = num_train_samples // batch_size  # get num step of per epoch
     max_step = epoch * step_per_epoch
 
     vgg = VGG16(input_shape, num_classes=num_classes, learning_rate=learning_rate)
 
     train_image_batch, train_label_batch = \
-        dataset_batch(data_dir=train_dir, batch_size=batch_size, epoch=epoch).get_next()
+        dataset_batch(data_dir=train_dir, batch_size=batch_size, epoch=epoch, is_training=True).get_next()
 
     val_image_batch, val_label_batch = \
-        dataset_batch(data_dir=val_dir, batch_size=batch_size, epoch=epoch).get_next()
+        dataset_batch(data_dir=val_dir, batch_size=batch_size, epoch=epoch, is_training=False).get_next()
 
+    # create saver
+    saver = tf.train.Saver()
     init_op = tf.group(tf.global_variables_initializer(),
                        tf.local_variables_initializer())
 
@@ -65,7 +67,7 @@ if __name__ == "__main__":
 
         graph = tf.get_default_graph()
         write = tf.summary.FileWriter(logdir=log_dir, graph=graph)
-        saver = tf.train.Saver()
+
 
         model_variable = tf.global_variables()
         for var in model_variable:
@@ -103,10 +105,15 @@ if __name__ == "__main__":
                     step_epoch += 1
                     print(
                         '\tstep {0}:loss value {1}  train accuracy {2}'.format(step_epoch, train_loss, train_accuracy))
+
+                    # save_model
+                    if (step + 1) % save_step_period == 0:
+                        saver.save(sess, save_path=save_dir, global_step=vgg.global_step)
+
+                    # ++++++++++++++++++++++++++++++++execute validation++++++++++++++++++++++++++++++++++++++++++++
+                    # execute validation when complete every epoch
+                    # validation use with all validation dataset
                     if (step + 1) % step_per_epoch == 0:  # complete training of epoch
-                        # ++++++++++++++++++++++++++++++++execute validation++++++++++++++++++++++++++++++++++++++++++++
-                        # execute validation when complete every epoch
-                        # validation use with all validation dataset
                         val_losses = []
                         val_accuracies = []
                         val_max_steps = int(num_val_samples / batch_size)
@@ -129,6 +136,7 @@ if __name__ == "__main__":
                         step_epoch = 0
 
                     write.add_summary(summary=summary, global_step=step)
+                saver.save(sess, save_path=save_dir, global_step=vgg.global_step)
                 write.close()
 
 
