@@ -17,6 +17,8 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import pathlib
 
+from DataProcess.vgg_preprocessing import preprocess_for_train
+
 data_dir = '/home/alex/Documents/dataset/flower_photos'
 
 flags = tf.app.flags
@@ -54,7 +56,6 @@ def get_file_label(data_dir, class_name=None):
 
     return shuffle_image, shuffle_label
 
-
 def parse_image_label(image, label, img_shape=(224, 224), label_depth=5, convert_scale=False):
     """
     parse and preprocess image label
@@ -71,11 +72,12 @@ def parse_image_label(image, label, img_shape=(224, 224), label_depth=5, convert
         tf.image.is_jpeg(image),
         lambda: tf.image.decode_jpeg(image),
         lambda: tf.image.decode_png(image))
-    # Use `convert_image_dtype` to convert to floats in the [0,1] range.
-    if convert_scale:
-        image = tf.image.convert_image_dtype(image, tf.float32)
-    # resize the image to the desired size.
-    image = tf.image.resize(image, img_shape)
+    # # Use `convert_image_dtype` to convert to floats in the [0,1] range.
+    # if convert_scale:
+    #     image = tf.image.convert_image_dtype(image, tf.float32)
+    # # resize the image to the desired size.
+    # image = tf.image.resize(image, img_shape)
+    image = preprocess_for_train(image, img_shape[0], img_shape[1])
     # # convert dtype to tf.uint8
     # image = tf.cast(image, dtype=tf.uint8)
     label = tf.one_hot(label, depth=label_depth, on_value=1)
@@ -83,7 +85,8 @@ def parse_image_label(image, label, img_shape=(224, 224), label_depth=5, convert
     return image, label
 
 
-def prepare_batch(data_dir, batch_size=32, epoch=10, class_name=None, img_shape=(224, 224), label_depth=5,
+
+def dataset_batch(data_dir, batch_size=32, epoch=10, class_name=None, img_shape=(224, 224), label_depth=5,
                   convert_scale=True):
     """
     create dataset iterator
@@ -124,6 +127,40 @@ def prepare_batch(data_dir, batch_size=32, epoch=10, class_name=None, img_shape=
     return dataset.make_one_shot_iterator()
 
 
+def get_batch(data_dir, image_shape, label_depth=5, batch_size=32, capacity=128):
+    """
+
+    :param data_dir:
+    :param image_shape:
+    :param batch_size:
+    :param capacity:
+    :return:
+    """
+    images, labels = get_file_label(data_dir, class_name)
+    # convert list to tensor
+    images = tf.cast(images, tf.string)
+    labels = tf.cast(labels, tf.int32)
+
+    # generate queue
+    input_queue = tf.train.slice_input_producer([images, labels])
+
+    labels = input_queue[1]
+    labels = tf.one_hot(labels, depth=label_depth, on_value=1)
+
+    # image process
+    images_content = tf.read_file(input_queue[0])  # read file to string
+    images = tf.cond(
+        tf.image.is_jpeg(images_content),
+        lambda: tf.image.decode_jpeg(images_content),
+        lambda: tf.image.decode_png(images_content))
+
+    images = preprocess_for_train(images, image_shape[0], image_shape[1]) # image preprocess
+
+    image_batch, label_batch = tf.train.batch([images, labels], batch_size=batch_size, num_threads=10, capacity=capacity)
+
+    return image_batch, label_batch
+
+
 def show_batch(image_batch, label_batch, class_name):
     """
 
@@ -142,7 +179,6 @@ def show_batch(image_batch, label_batch, class_name):
 
 
 
-
 if __name__ == "__main__":
 
     data_dir = pathlib.Path(data_dir)
@@ -153,10 +189,30 @@ if __name__ == "__main__":
     list_dataset = tf.data.Dataset.list_files(str(data_dir / '*/*'))
 
 
-    dataset_iterator = prepare_batch(data_dir, batch_size=32, class_name=class_name)
-    with tf.Session() as sess:
+    # test queue batch
+    # train_image_batch, train_label_batch = get_batch(data_dir, batch_size=32, image_shape=[224, 224])
+    # with tf.Session() as sess:
+    #     # print(sess.run('vgg_16/conv1/conv1_1/biases:0'))
+    #     coord = tf.train.Coordinator()
+    #     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+    #     try:
+    #         if not coord.should_stop():
+    #
+    #             train_image, train_label = sess.run([train_image_batch, train_label_batch])
+    #
+    #             show_batch(train_image, train_label, class_name)
+    #
+    #     except Exception as e:
+    #         print(e)
+    #     coord.request_stop()
+    #     coord.join(threads)
 
-        train_image_batch, train_label_batch = dataset_iterator.get_next()
+    # test dataset
+    dataset_iterator = dataset_batch(data_dir, batch_size=32, class_name=class_name)
+    train_image_batch, train_label_batch = dataset_iterator.get_next()
+
+    with tf.Session() as sess:
+        # print(sess.run('vgg_16/conv1/conv1_1/biases:0'))
         train_image, train_label = sess.run([train_image_batch, train_label_batch])
 
         show_batch(train_image, train_label, class_name)
