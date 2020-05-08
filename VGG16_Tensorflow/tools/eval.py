@@ -13,10 +13,11 @@
 import os
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 from PIL import Image as pil_image
 # from DataProcess.vgg_preprocessing import preprocess_image
 
-meta_path = os.path.join('../outputs/model', 'model.ckpt-2000.meta')
+meta_path = os.path.join('../outputs/model', 'model.ckpt-2730.meta')
 model_path = os.path.join('../outputs/model', 'model.ckpt-2730')
 
 image_path = './demo/rose_0.jpg'
@@ -56,12 +57,30 @@ def image_preprocess(img_path, target_size=(224, 224), color_mode='rgb'):
     for channel in range(3):
         img_array[:, :, channel] -= means[channel]
 
-
     # expand dimension
     img_batch = np.expand_dims(img_array, axis=0)
 
     return img_batch
 
+
+def visualize_predict(predict, class_name):
+    """
+    visualize predict result
+    :param predict:
+    :param class_name:
+    :return:
+    """
+    fig, ax = plt.subplots()
+    y_pos = np.arange(len(predict))
+
+    ax.barh(y_pos, predict, align='center')
+    ax.set_yticks(y_pos)
+    ax.set_ylabel('category')
+    ax.set_yticklabels(class_name)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('probability')
+    ax.set_title('predict result')
+    plt.show()
 
 if __name__ == "__main__":
 
@@ -89,6 +108,9 @@ if __name__ == "__main__":
         prob = sess.run(prob, feed_dict=feed_dict)
         predict_label = int(np.argmax(prob))
         print('This is a {0} with possibility {1}'.format(class_name[predict_label], prob[0][predict_label]))
+
+        visualize_predict(prob[0], class_name)
+
 
 
 
