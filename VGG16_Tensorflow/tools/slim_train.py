@@ -194,14 +194,14 @@ if __name__ == "__main__":
                     # print training info
                     print('\tstep {0}:loss value {1}  train accuracy {2}'.format(step_epoch, train_loss, train_accuracy))
 
-                    # -------------------------save_model every per save_step_period--------------------------------
+                    # -------------------------save_model every  save_step_period--------------------------------
                     if (step + 1) % FLAGS.save_step_period == 0:
                         saver.save(sess, save_path=os.path.join(FLAGS.save_dir, 'model.ckpt'), global_step=vgg.global_step)
 
+                    # ++++++++++++++++++++++++++++++++validation part++++++++++++++++++++++++++++++++++++++++++++
+                    # execute validation when complete every epoch
+                    # validation use with all validation dataset
                     if (step + 1) % step_per_epoch == 0:
-                        # ++++++++++++++++++++++++++++++++validation part++++++++++++++++++++++++++++++++++++++++++++
-                        # execute validation when complete every epoch
-                        # validation use with all validation dataset
                         val_losses = []
                         val_accuracies = []
                         val_max_steps = int(num_val_samples / FLAGS.batch_size)
@@ -225,7 +225,7 @@ if __name__ == "__main__":
                     write.add_summary(summary=summary, global_step=step)
                 write.close()
 
-                # save model
+                # ++++++++++++++++++++++++++++save model to pb+++++++++++++++++++++++++++++++++++++++
                 # get op name for save model
                 input_op = vgg.raw_input_data.name
                 logit_op = vgg.logits.name
