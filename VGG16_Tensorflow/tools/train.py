@@ -19,13 +19,13 @@ from VGG16_Tensorflow.nets.VGG16 import VGG16
 
 from DataProcess.load_dataset import dataset_batch, get_samples
 
-model_dir = '/home/alex/Documents/pretraining_model/vgg16'
+model_dir = '/home/alex/Documents/pretrain_model/vgg16'
 npy_model_path = os.path.join(model_dir, 'vgg16.npy')
 train_dir = '/home/alex/Documents/dataset/flower_split/train'
 val_dir = '/home/alex/Documents/dataset/flower_split/val'
 
 
-save_dir = os.path.join(os.getcwd(), 'outputs' 'model', 'model.ckpt')
+save_dir = os.path.join(os.getcwd(), 'outputs', 'model', 'model.ckpt')
 log_dir = os.path.join(os.getcwd(), 'outputs', 'logs')
 
 input_shape = [224, 224, 3]
@@ -105,7 +105,7 @@ if __name__ == "__main__":
                     print(
                         '\tstep {0}:loss value {1}  train accuracy {2}'.format(step_epoch, train_loss, train_accuracy))
 
-                    # save_model
+                    # save_model every per save_step_period
                     if (step + 1) % save_step_period == 0:
                         saver.save(sess, save_path=save_dir, global_step=vgg.global_step)
 
@@ -131,7 +131,7 @@ if __name__ == "__main__":
 
                         print("\t{0}: epoch {1}  val Loss : {2}, val accuracy :  {3}".format(datetime.now(), epoch,
                                                                                              mean_loss, mean_acc))
-                        print('Epoch: {0}/{1}'.format(step//step_per_epoch, epoch))
+                        print('Epoch: {0}/{1}'.format((step+1) // step_per_epoch, epoch))
                         step_epoch = 0
 
                     write.add_summary(summary=summary, global_step=step)
