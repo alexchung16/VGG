@@ -89,10 +89,15 @@ if __name__ == "__main__":
             if not coord.should_stop():
 
                 # ++++++++++++++++++++++++++++++++++start training+++++++++++++++++++++++++++++++++++++++++++++++++
-                # used to count the step per epoch
+                # used to record the number step of per epoch
                 step_epoch = 0
-                print('Epoch: {0}/{1}'.format(0, epoch))
                 for step in range(max_step):
+                    # --------------------------------print number of epoch--------------------------------------
+                    if (step) % step_per_epoch == 0:
+                        tmp_epoch = (step + 1) // step_per_epoch
+                        print('Epoch: {0}/{1}'.format(tmp_epoch+1, epoch))
+
+                    # +++++++++++++++++++++++++++++++train step++++++++++++++++++++++++++++++++++++++++++++++++
                     train_image, train_label = sess.run([train_image_batch, train_label_batch])
 
                     feed_dict = vgg.fill_feed_dict(image_feed=train_image, label_feed=train_label, keep_prob=keep_prob)
@@ -100,16 +105,15 @@ if __name__ == "__main__":
                     _, train_loss, train_accuracy, summary = sess.run(
                         fetches=[vgg.train, vgg.loss, vgg.accuracy, summary_op], feed_dict=feed_dict)
 
-                    # print training info
                     step_epoch += 1
                     print(
                         '\tstep {0}:loss value {1}  train accuracy {2}'.format(step_epoch, train_loss, train_accuracy))
 
-                    # save_model every per save_step_period
+                    # -------------------------save_model every per save_step_period--------------------------------
                     if (step + 1) % save_step_period == 0:
                         saver.save(sess, save_path=save_dir, global_step=vgg.global_step)
 
-                    # ++++++++++++++++++++++++++++++++execute validation++++++++++++++++++++++++++++++++++++++++++++
+                    # ++++++++++++++++++++++++++++++++validation step++++++++++++++++++++++++++++++++++++++++++++
                     # execute validation when complete every epoch
                     # validation use with all validation dataset
                     if (step + 1) % step_per_epoch == 0:  # complete training of epoch
@@ -129,10 +133,10 @@ if __name__ == "__main__":
                         mean_loss = np.array(val_losses, dtype=np.float32).mean()
                         mean_acc = np.array(val_accuracies, dtype=np.float32).mean()
 
-                        print("\t{0}: epoch {1}  val Loss : {2}, val accuracy :  {3}".format(datetime.now(), epoch,
+                        print("\t{0}: epoch {1}  val Loss : {2}, val accuracy :  {3}".format(datetime.now(),
+                                                                                             (step + 1) // step_per_epoch,
                                                                                              mean_loss, mean_acc))
-                        print('Epoch: {0}/{1}'.format((step+1) // step_per_epoch, epoch))
-                        step_epoch = 0
+                        step_epoch = 0  # update step_epoch
 
                     write.add_summary(summary=summary, global_step=step)
                 saver.save(sess, save_path=save_dir, global_step=vgg.global_step)
