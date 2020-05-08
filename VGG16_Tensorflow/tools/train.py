@@ -97,7 +97,7 @@ if __name__ == "__main__":
                         tmp_epoch = (step + 1) // step_per_epoch
                         print('Epoch: {0}/{1}'.format(tmp_epoch+1, epoch))
 
-                    # +++++++++++++++++++++++++++++++train step++++++++++++++++++++++++++++++++++++++++++++++++
+                    # +++++++++++++++++++++++++++++++train part++++++++++++++++++++++++++++++++++++++++++++++++
                     train_image, train_label = sess.run([train_image_batch, train_label_batch])
 
                     feed_dict = vgg.fill_feed_dict(image_feed=train_image, label_feed=train_label, keep_prob=keep_prob)
@@ -113,7 +113,7 @@ if __name__ == "__main__":
                     if (step + 1) % save_step_period == 0:
                         saver.save(sess, save_path=save_dir, global_step=vgg.global_step)
 
-                    # ++++++++++++++++++++++++++++++++validation step++++++++++++++++++++++++++++++++++++++++++++
+                    # ++++++++++++++++++++++++++++++++validation part++++++++++++++++++++++++++++++++++++++++++++
                     # execute validation when complete every epoch
                     # validation use with all validation dataset
                     if (step + 1) % step_per_epoch == 0:  # complete training of epoch

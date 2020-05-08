@@ -17,15 +17,16 @@ from DataProcess.read_TFRecord import dataset_tfrecord, get_num_samples
 from tensorflow.python.framework import graph_util
 
 
-original_dataset_dir = '/home/alex/Documents/dataset/flower_photos'
-tfrecord_dir = os.path.join(original_dataset_dir, 'tfrecord')
+dataset_dir = '/home/alex/Documents/dataset/flower_tfrecord'
 
-train_data_path = os.path.join(tfrecord_dir, 'train')
-test_data_path = os.path.join(tfrecord_dir, 'test')
+train_data_path = os.path.join(dataset_dir, 'train')
+test_data_path = os.path.join(dataset_dir, 'val')
 
 model_path = os.path.join(os.getcwd(), 'model')
-pretrain_model_dir = '/home/alex/Documents/pretraing_model/vgg16/vgg16.ckpt'
+pretrain_model_dir = '/home/alex/Documents/pretrain_model/vgg16/vgg16.ckpt'
 logs_dir = os.path.join(os.getcwd(), 'logs')
+model_dir = save_dir = os.path.join(os.getcwd(), 'outputs', 'model')
+
 
 
 flags = tf.app.flags
@@ -46,10 +47,8 @@ flags.DEFINE_string('pretrain_model_dir', pretrain_model_dir, 'pretrain model di
 flags.DEFINE_string('train_data_dir', train_data_path, 'Directory to put the training data.')
 flags.DEFINE_string('test_data_dir', test_data_path, 'Directory to put the training data.')
 flags.DEFINE_string('logs_dir', logs_dir, 'direct of summary logs.')
-
-# pretrain model path
-model_dir = '/home/alex/Documents/pretraing_model/vgg16'
-
+flags.DEFINE_string('model_dir', model_dir, 'direct of summary model to save.')
+flags.DEFINE_integer('save_step_period', 2000, 'save model step period')
 
 def makedir(path):
     """
@@ -102,10 +101,9 @@ if __name__ == "__main__":
 
     num_train_samples = get_num_samples(record_dir=FLAGS.train_data_dir)
     num_val_samples = get_num_samples(record_dir=FLAGS.test_data_dir)
-    # approximate samples per epoch
-    approx_sample = int((num_train_samples // FLAGS.batch_size) * FLAGS.batch_size)
-    max_step = int((FLAGS.epoch * approx_sample) // FLAGS.batch_size)
-    # max_step = int(FLAGS.epch * num_train_samples / FLAGS.batch_size)
+
+    step_per_epoch = num_train_samples // FLAGS.batch_size  # get num step of per epoch
+    max_step = FLAGS.epoch * step_per_epoch
 
     vgg = VGG16(input_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
                 num_classes=FLAGS.num_classes,
@@ -115,19 +113,18 @@ if __name__ == "__main__":
                 num_samples_per_epoch=num_train_samples,
                 num_epoch_per_decay=FLAGS.num_epoch_per_decay,
                 keep_prob=FLAGS.keep_prop,
-                weight_decay=FLAGS.weight_decay,
-                is_pretrain=FLAGS.is_pretrain)
+                weight_decay=FLAGS.weight_decay)
 
     train_images_batch, train_labels_batch, train_filenames = dataset_tfrecord(record_file=FLAGS.train_data_dir,
                                                                   batch_size=FLAGS.batch_size,
-                                                                  input_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
+                                                                  target_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
                                                                   class_depth=FLAGS.num_classes,
                                                                   epoch=FLAGS.epoch,
                                                                   shuffle=True,
                                                                   is_training=True)
     val_images_batch, val_labels_batch, val_filenames = dataset_tfrecord(record_file=FLAGS.test_data_dir,
                                                                    batch_size=FLAGS.batch_size,
-                                                                   input_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
+                                                                   target_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
                                                                    class_depth=FLAGS.num_classes,
                                                                    epoch=FLAGS.epoch,
                                                                    shuffle=True,
@@ -178,25 +175,31 @@ if __name__ == "__main__":
             if not coord.should_stop():
 
                 # ++++++++++++++++++++++++++++++++++start training+++++++++++++++++++++++++++++++++++++++++++++++++
-                # used to count the step per epoch
+                # used to record the number step of per epoch
                 step_epoch = 0
-                print('Epoch: {0}/{1}'.format(step_epoch, FLAGS.epoch))
                 for step in range(max_step):
+                    # --------------------------------print number of epoch--------------------------------------
+                    if (step) % step_per_epoch == 0:
+                        tmp_epoch = (step + 1) // step_per_epoch
+                        print('Epoch: {0}/{1}'.format(tmp_epoch + 1, FLAGS.epoch))
+
+                    # +++++++++++++++++++++++++++++++train part++++++++++++++++++++++++++++++++++++++++++++++++
                     train_image, train_label = sess.run([train_images_batch, train_labels_batch])
 
                     feed_dict = vgg.fill_feed_dict(image_feed=train_image, label_feed=train_label, is_training=True)
 
                     _, train_loss, train_accuracy, summary = sess.run(fetches=[vgg.train, vgg.loss, vgg.accuracy, summary_op],
                                                              feed_dict=feed_dict)
-
-                    epoch = int(step * FLAGS.batch_size / approx_sample + 1)
+                    step_epoch += 1
                     # print training info
                     print('\tstep {0}:loss value {1}  train accuracy {2}'.format(step_epoch, train_loss, train_accuracy))
 
-                    step_epoch += 1
-                    if (step + 1) * FLAGS.batch_size % approx_sample == 0:  # complete training of epoch
+                    # -------------------------save_model every per save_step_period--------------------------------
+                    if (step + 1) % FLAGS.save_step_period == 0:
+                        saver.save(sess, save_path=os.path.join(FLAGS.save_dir, 'model.ckpt'), global_step=vgg.global_step)
 
-                        # ++++++++++++++++++++++++++++++++execute validation++++++++++++++++++++++++++++++++++++++++++++
+                    if (step + 1) % step_per_epoch == 0:
+                        # ++++++++++++++++++++++++++++++++validation part++++++++++++++++++++++++++++++++++++++++++++
                         # execute validation when complete every epoch
                         # validation use with all validation dataset
                         val_losses = []
@@ -214,10 +217,10 @@ if __name__ == "__main__":
                         mean_loss = np.array(val_losses, dtype=np.float32).mean()
                         mean_acc = np.array(val_accuracies, dtype=np.float32).mean()
 
-                        print("\t{0}: epoch {1}  val Loss : {2}, val accuracy :  {3}".format(datetime.now(), epoch,
+                        print("\t{0}: epoch: {1}  val Loss: {2}, val accuracy:  {3}".format(datetime.now(),
+                                                                                           (step+1) // step_per_epoch,
                                                                                            mean_loss, mean_acc))
-                        print('Epoch: {0}/{1}'.format(epoch, FLAGS.epoch))
-                        step_epoch = 0
+                        step_epoch = 0 # update step_epoch
 
                     write.add_summary(summary=summary, global_step=step)
                 write.close()
@@ -232,8 +235,7 @@ if __name__ == "__main__":
                                                                               [input_op.split(':')[0],
                                                                                logit_op.split(':')[0]])
                 # save to serialize file
-                makedir(model_dir)
-                with tf.gfile.FastGFile(name=os.path.join(model_dir, 'model.pb'), mode='wb') as f:
+                with tf.gfile.FastGFile(name=os.path.join(FLAGS.model_dir, 'model.pb'), mode='wb') as f:
                     f.write(constant_graph.SerializeToString())
 
         except Exception as e:
