@@ -16,14 +16,15 @@ import numpy as np
 from DataProcess.read_TFRecord import dataset_tfrecord, get_num_samples
 from tensorflow.python.framework import graph_util
 
-
+# dataset path
 dataset_dir = '/home/alex/Documents/dataset/flower_tfrecord'
-
 train_data_path = os.path.join(dataset_dir, 'train')
 test_data_path = os.path.join(dataset_dir, 'val')
 
-model_path = os.path.join(os.getcwd(), 'model')
+# pretrain model
 pretrain_model_dir = '/home/alex/Documents/pretrain_model/vgg16/vgg16.ckpt'
+
+# output path
 logs_dir = os.path.join('../', 'outputs', 'logs')
 model_dir = save_dir = os.path.join('../', 'outputs', 'model')
 
@@ -48,6 +49,7 @@ flags.DEFINE_string('test_data_dir', test_data_path, 'Directory to put the train
 flags.DEFINE_string('logs_dir', logs_dir, 'direct of summary logs.')
 flags.DEFINE_string('model_dir', model_dir, 'direct of summary model to save.')
 flags.DEFINE_integer('save_step_period', 2000, 'save model step period')
+
 
 def makedir(path):
     """
@@ -101,8 +103,9 @@ if __name__ == "__main__":
     num_train_samples = get_num_samples(record_dir=FLAGS.train_data_dir)
     num_val_samples = get_num_samples(record_dir=FLAGS.test_data_dir)
 
+    # get total step of the number train epoch
     step_per_epoch = num_train_samples // FLAGS.batch_size  # get num step of per epoch
-    max_step = FLAGS.epoch * step_per_epoch
+    max_step = FLAGS.epoch * step_per_epoch  # get total step of several epoch
 
     vgg = VGG16(input_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
                 num_classes=FLAGS.num_classes,
@@ -189,6 +192,8 @@ if __name__ == "__main__":
 
                     _, train_loss, train_accuracy, summary = sess.run(fetches=[vgg.train, vgg.loss, vgg.accuracy, summary_op],
                                                              feed_dict=feed_dict)
+                    write.add_summary(summary=summary, global_step=step)
+
                     step_epoch += 1
                     # print training info
                     print('\tstep {0}:loss value {1}  train accuracy {2}'.format(step_epoch, train_loss, train_accuracy))
@@ -220,7 +225,6 @@ if __name__ == "__main__":
                                                                                            mean_loss, mean_acc))
                         step_epoch = 0 # update step_epoch
 
-                    write.add_summary(summary=summary, global_step=step)
                 saver.save(sess, save_path=os.path.join(FLAGS.model_dir, 'model.ckpt'), global_step=vgg.global_step)
                 write.close()
 

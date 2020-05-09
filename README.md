@@ -5,7 +5,10 @@ https://storage.googleapis.com/download.tensorflow.org/example_images/flower_pho
 ## image_preprocessing
 https://github.com/tensorflow/models/blob/master/research/slim/preprocessing/vgg_preprocessing.py
 ## vgg16 pre train model
+### vgg16.npy
 https://mega.nz/file/YU1FWJrA#O1ywiCS2IiOlUCtCpI6HTJOMrneN-Qdv3ywQP5poecM
+### vgg16.ckpt
+http://download.tensorflow.org/models/vgg_16_2016_08_28.tar.gz
 
 
 ## train and validation result

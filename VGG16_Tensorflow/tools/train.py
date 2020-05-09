@@ -19,12 +19,15 @@ from VGG16_Tensorflow.nets.VGG16 import VGG16
 
 from DataProcess.load_dataset import dataset_batch, get_samples
 
-model_dir = '/home/alex/Documents/pretrain_model/vgg16'
-npy_model_path = os.path.join(model_dir, 'vgg16.npy')
+# dataset path
 train_dir = '/home/alex/Documents/dataset/flower_split/train'
 val_dir = '/home/alex/Documents/dataset/flower_split/val'
 
+# pretrain model
+model_dir = '/home/alex/Documents/pretrain_model/vgg16'
+npy_model_path = os.path.join(model_dir, 'vgg16.npy')
 
+# outputs path
 save_dir = os.path.join('../', 'outputs', 'model', 'model.ckpt')
 log_dir = os.path.join(',,/', 'outputs', 'logs')
 
@@ -41,8 +44,9 @@ num_val_samples = get_samples(val_dir)
 
 if __name__ == "__main__":
 
+    # get total step of the number train epoch
     step_per_epoch = num_train_samples // batch_size  # get num step of per epoch
-    max_step = epoch * step_per_epoch
+    max_step = epoch * step_per_epoch  # get total step of several epoch
 
     vgg = VGG16(input_shape, num_classes=num_classes, learning_rate=learning_rate)
 
@@ -104,6 +108,7 @@ if __name__ == "__main__":
 
                     _, train_loss, train_accuracy, summary = sess.run(
                         fetches=[vgg.train, vgg.loss, vgg.accuracy, summary_op], feed_dict=feed_dict)
+                    write.add_summary(summary=summary, global_step=step)
 
                     step_epoch += 1
                     print(
@@ -137,8 +142,6 @@ if __name__ == "__main__":
                                                                                              (step + 1) // step_per_epoch,
                                                                                              mean_loss, mean_acc))
                         step_epoch = 0  # update step_epoch
-
-                    write.add_summary(summary=summary, global_step=step)
                 saver.save(sess, save_path=save_dir, global_step=vgg.global_step)
                 write.close()
 

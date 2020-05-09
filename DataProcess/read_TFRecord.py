@@ -402,7 +402,6 @@ def reader_tfrecord(record_file, target_shape, class_depth, batch_size=10, num_t
 
     # parse sample
     image, label, filename = parse_example(serialized_sample, target_shape=target_shape, class_depth=class_depth,
-                                           fast_mode=fast_mode, preprocessing_type=preprocessing_type,
                                            is_training=is_training)
 
     if shuffle:
