@@ -6,3 +6,13 @@ https://storage.googleapis.com/download.tensorflow.org/example_images/flower_pho
 https://github.com/tensorflow/models/blob/master/research/slim/preprocessing/vgg_preprocessing.py
 ## vgg16 pre train model
 https://mega.nz/file/YU1FWJrA#O1ywiCS2IiOlUCtCpI6HTJOMrneN-Qdv3ywQP5poecM
+
+
+## train and validation result
+| |loss| accuracy
+---|---|---
+train| 0.9279305934906006|0.96875
+val| 0.9812358617782593|0.92391
+
+
+
