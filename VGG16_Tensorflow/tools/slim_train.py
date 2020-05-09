@@ -39,7 +39,7 @@ flags.DEFINE_integer('batch_size', 32, 'Batch size Must divide evenly into the d
 flags.DEFINE_integer('epoch', 30, 'Number of epoch size.')
 flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate.')
 flags.DEFINE_float('decay_rate', 0.9, 'Number of learning decay rate.')
-flags.DEFINE_integer('num_epoch_per_decay', 2, 'Number epoch after each leaning rate decapy.')
+flags.DEFINE_integer('num_epoch_per_decay', 20, 'Number epoch after each leaning rate decay.')
 flags.DEFINE_float('keep_prop', 1.0, 'Number of probability that each element is kept.')
 flags.DEFINE_float('weight_decay', 0.00005, 'Number of regular scale size')
 flags.DEFINE_bool('is_pretrain', True, 'if True, use pretrain model.')

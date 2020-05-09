@@ -15,7 +15,7 @@ class VGG16():
     VGG16 model
     """
     def __init__(self, input_shape, num_classes, batch_size, decay_rate, learning_rate, keep_prob=0.8,
-                 weight_decay=0.00005, num_samples_per_epoch=None, num_epoch_per_decay=None, is_pretrain=False):
+                 weight_decay=0.00005, num_samples_per_epoch=None, num_epoch_per_decay=None):
         self.num_classes = num_classes
         self.batch_size = batch_size
         self.decay_steps = int(num_samples_per_epoch / batch_size * num_epoch_per_decay)
@@ -25,16 +25,15 @@ class VGG16():
         self.keep_prob = keep_prob
         self.weight_decay = weight_decay
 
-        self.is_pretrain = is_pretrain
-        self._R_MEAN = 123.68
-        self._G_MEAN = 116.78
-        self._B_MEAN = 103.94
+        # self._R_MEAN = 123.68
+        # self._G_MEAN = 116.78
+        # self._B_MEAN = 103.94
         # self.initializer = tf.random_normal_initializer(stddev=0.1)
         # add placeholder (X,label)
         self.raw_input_data = tf.placeholder(tf.float32, shape=[None, input_shape[0], input_shape[1], input_shape[2]],
                                              name="input_images")
-        self.raw_input_data = self.mean_subtraction(image=self.raw_input_data,
-                                                    means=[self._R_MEAN, self._G_MEAN, self._B_MEAN])
+        # self.raw_input_data = self.mean_subtraction(image=self.raw_input_data,
+        #                                             means=[self._R_MEAN, self._G_MEAN, self._B_MEAN])
         # y [None,num_classes]
         self.raw_input_label = tf.placeholder(tf.float32, shape=[None, self.num_classes], name="class_label")
         self.is_training = tf.compat.v1.placeholder_with_default(input=False, shape=(), name='is_training')
@@ -49,7 +48,7 @@ class VGG16():
         self.loss = self.losses(labels=self.raw_input_label, logits=self.logits, name='loss')
         # train operation
         self.train = self.training(self.learning_rate, self.global_step)
-        self.accuracy = self.evaluate(logits=self.logits, labels=self.raw_input_label)
+        self.accuracy = self.get_accuracy(logits=self.logits, labels=self.raw_input_label)
 
     def inference(self, inputs, name):
         """
@@ -83,48 +82,44 @@ class VGG16():
                                weights_regularizer=slim.l2_regularizer(self.weight_decay),
                                biases_initializer=tf.zeros_initializer()):
                with tf.variable_scope('conv1', default_name='conv1'):
-                   net = slim.conv2d(inputs, num_outputs=64, kernel_size=[3, 3], scope='conv1_1')
-                   net = slim.conv2d(net, num_outputs=64, kernel_size=[3, 3], scope='conv1_2')
+                   net = slim.conv2d(inputs, num_outputs=64, kernel_size=[3, 3], scope='conv1_1', trainable=True)
+                   net = slim.conv2d(net, num_outputs=64, kernel_size=[3, 3], scope='conv1_2', trainable=True)
                net = slim.max_pool2d(net, [2, 2], scope='pool1')
                with tf.variable_scope('conv2', default_name='conv2'):
-                    net = slim.conv2d(net, num_outputs=128, kernel_size=[3, 3], scope='conv2_1')
-                    net = slim.conv2d(net, num_outputs=128, kernel_size=[3, 3], scope='conv2_2')
+                    net = slim.conv2d(net, num_outputs=128, kernel_size=[3, 3], scope='conv2_1', trainable=True)
+                    net = slim.conv2d(net, num_outputs=128, kernel_size=[3, 3], scope='conv2_2', trainable=True)
                net = slim.max_pool2d(net, [2, 2], scope='pool2')
                with tf.variable_scope('conv3', default_name='conv3'):
-                    net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_1')
-                    net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_2')
-                    net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_3')
+                    net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_1', trainable=True)
+                    net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_2', trainable=True)
+                    net = slim.conv2d(net, num_outputs=256, kernel_size=[3, 3], scope='conv3_3', trainable=True)
                net = slim.max_pool2d(net, [2, 2], scope='pool3')
                with tf.variable_scope('conv4', default_name='conv4'):
-                    net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_1')
-                    net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_2')
-                    net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_3')
+                    net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_1', trainable=True)
+                    net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_2', trainable=True)
+                    net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv4_3', trainable=True)
                net = slim.max_pool2d(net, [2, 2], scope='pool4')
                with tf.variable_scope('conv5', default_name='conv5'):
-                   net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_1')
-                   net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_2')
-                   net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_3')
+                   net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_1', trainable=True)
+                   net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_2', trainable=True)
+                   net = slim.conv2d(net, num_outputs=512, kernel_size=[3, 3], scope='conv5_3', trainable=True)
                net = slim.max_pool2d(net, [2, 2], scope='pool5')
 
                # Use conv2d instead of fully_connected layers.
-               net = slim.conv2d(net, 4096, [7, 7], padding='VALID', scope='fc6')
+               net = slim.conv2d(net, 4096, [7, 7], padding='VALID', scope='fc6', trainable=True)
                net = slim.dropout(net, keep_prob, is_training=is_training, scope='dropout6')
-               net = slim.conv2d(net, 4096, [1, 1], scope='fc7')
-               # dropout
+               net = slim.conv2d(net, 4096, [1, 1], scope='fc7', trainable=True)
                net = slim.dropout(net, keep_prob, is_training=is_training, scope='dropout7')
 
-               net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
+               net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8',
+                                 trainable=True)
                logits = tf.squeeze(net, [1, 2], name='fc8/squeezed')
 
-               # net = slim.flatten(net)
-               # net = slim.fully_connected(net, num_outputs=512, scope='fc8_1')
-               # net = slim.dropout(net, keep_prob, is_training=is_training, scope='dropout8')
-               # logits = slim.fully_connected(inputs=net, num_outputs=num_classes, activation_fn=None, scope='fc8')
                # softmax
                prop = slim.softmax(logits=logits, scope='softmax')
                return prop
 
-    def training(self, learnRate, globalStep):
+    def training(self, learning_rate, global_step, train_scope=None):
         """
         train operation
         :param learnRate:
@@ -133,27 +128,27 @@ class VGG16():
         :return:
         """
         # define trainable variable
-        trainable_variable = None
-        # trainable_scope = self.trainable_scope
-        trainable_scope = ['vgg_16/conv5_1','vgg_16/conv5_2','vgg_16/conv5_3','vgg_16/fc6', 'vgg_16/fc7', 'vgg_16/fc8']
+        # define frozen layer
+        trainable_scope = ['vgg_16/fc6', 'vgg_16/fc7', 'vgg_16/fc8']
         # trainable_scope = []
-        if self.is_pretrain and trainable_scope:
-            trainable_variable = []
+        trainable_variable = []
+        if trainable_scope is not None:
             for scope in trainable_scope:
                 variables = tf.model_variables(scope=scope)
                 [trainable_variable.append(var) for var in variables]
 
-        learning_rate = tf.train.exponential_decay(learning_rate=learnRate, global_step=globalStep,
+        learning_rate = tf.train.exponential_decay(learning_rate=learning_rate, global_step=global_step,
                                                    decay_steps=self.decay_steps, decay_rate=self.decay_rate,
                                                    staircase=False)
-        # according to use request of slim.batch_norm
-        # update moving_mean and moving_variance when training
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            train_op = tf.train.AdamOptimizer(learning_rate).minimize(self.loss, global_step=globalStep,
-                                                                      var_list=trainable_variable)
+        # # according to use request of slim.batch_norm
+        # # update moving_mean and moving_variance when training
+        # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        # with tf.control_dependencies(update_ops):
+        #     train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(self.loss, global_step=global_step,
+        #                                                                          var_list=trainable_variable)
+        train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(self.loss, global_step=global_step,
+                                                                             var_list=trainable_variable)
         return train_op
-
 
     # def predict(self):
     #     """
@@ -162,7 +157,6 @@ class VGG16():
     #     """
     #
     #     return tf.cast(self.logits, dtype=tf.float32, name="predicts")
-
 
     def losses(self, logits, labels, name):
         """
@@ -177,7 +171,7 @@ class VGG16():
             tf.summary.scalar("loss", loss)
             return loss
 
-    def evaluate(self, logits, labels):
+    def get_accuracy(self, logits, labels):
         """
         evaluate one batch correct num
         :param logits:
