@@ -9,9 +9,7 @@ https://github.com/tensorflow/models/blob/master/research/slim/preprocessing/vgg
 https://mega.nz/file/YU1FWJrA#O1ywiCS2IiOlUCtCpI6HTJOMrneN-Qdv3ywQP5poecM
 ### vgg16.ckpt
 http://download.tensorflow.org/models/vgg_16_2016_08_28.tar.gz
-
-
-## train and validation result
+## train and validation result(30 epoch)
 | |loss| accuracy
 ---|---|---
 train| 0.9279305934906006|0.96875
