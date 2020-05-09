@@ -47,7 +47,7 @@ flags.DEFINE_string('train_data_dir', train_data_path, 'Directory to put the tra
 flags.DEFINE_string('test_data_dir', test_data_path, 'Directory to put the training data.')
 flags.DEFINE_string('logs_dir', logs_dir, 'direct of summary logs.')
 flags.DEFINE_string('model_dir', model_dir, 'direct of summary model to save.')
-flags.DEFINE_integer('save_step_period', 200, 'save model step period')
+flags.DEFINE_integer('save_step_period', 2000, 'save model step period')
 
 def makedir(path):
     """
