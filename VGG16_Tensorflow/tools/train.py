@@ -25,8 +25,8 @@ train_dir = '/home/alex/Documents/dataset/flower_split/train'
 val_dir = '/home/alex/Documents/dataset/flower_split/val'
 
 
-save_dir = os.path.join(os.getcwd(), 'outputs', 'model', 'model.ckpt')
-log_dir = os.path.join(os.getcwd(), 'outputs', 'logs')
+save_dir = os.path.join('../', 'outputs', 'model', 'model.ckpt')
+log_dir = os.path.join(',,/', 'outputs', 'logs')
 
 input_shape = [224, 224, 3]
 num_classes=5

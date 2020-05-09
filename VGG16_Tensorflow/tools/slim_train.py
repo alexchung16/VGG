@@ -24,9 +24,8 @@ test_data_path = os.path.join(dataset_dir, 'val')
 
 model_path = os.path.join(os.getcwd(), 'model')
 pretrain_model_dir = '/home/alex/Documents/pretrain_model/vgg16/vgg16.ckpt'
-logs_dir = os.path.join(os.getcwd(), 'logs')
-model_dir = save_dir = os.path.join(os.getcwd(), 'outputs', 'model')
-
+logs_dir = os.path.join('../', 'outputs', 'logs')
+model_dir = save_dir = os.path.join('../', 'outputs', 'model')
 
 
 flags = tf.app.flags
@@ -48,7 +47,7 @@ flags.DEFINE_string('train_data_dir', train_data_path, 'Directory to put the tra
 flags.DEFINE_string('test_data_dir', test_data_path, 'Directory to put the training data.')
 flags.DEFINE_string('logs_dir', logs_dir, 'direct of summary logs.')
 flags.DEFINE_string('model_dir', model_dir, 'direct of summary model to save.')
-flags.DEFINE_integer('save_step_period', 2000, 'save model step period')
+flags.DEFINE_integer('save_step_period', 200, 'save model step period')
 
 def makedir(path):
     """
@@ -196,8 +195,7 @@ if __name__ == "__main__":
 
                     # -------------------------save_model every  save_step_period--------------------------------
                     if (step + 1) % FLAGS.save_step_period == 0:
-                        saver.save(sess, save_path=os.path.join(FLAGS.save_dir, 'model.ckpt'), global_step=vgg.global_step)
-
+                        saver.save(sess, save_path=os.path.join(FLAGS.model_dir, 'model.ckpt'), global_step=vgg.global_step)
                     # ++++++++++++++++++++++++++++++++validation part++++++++++++++++++++++++++++++++++++++++++++
                     # execute validation when complete every epoch
                     # validation use with all validation dataset
@@ -223,6 +221,7 @@ if __name__ == "__main__":
                         step_epoch = 0 # update step_epoch
 
                     write.add_summary(summary=summary, global_step=step)
+                saver.save(sess, save_path=os.path.join(FLAGS.model_dir, 'model.ckpt'), global_step=vgg.global_step)
                 write.close()
 
                 # ++++++++++++++++++++++++++++save model to pb+++++++++++++++++++++++++++++++++++++++
@@ -235,7 +234,7 @@ if __name__ == "__main__":
                                                                               [input_op.split(':')[0],
                                                                                logit_op.split(':')[0]])
                 # save to serialize file
-                with tf.gfile.FastGFile(name=os.path.join(FLAGS.model_dir, 'model.pb'), mode='wb') as f:
+                with tf.gfile.FastGFile(name=os.path.join(FLAGS.model_dir, 'model_pb', 'model.pb'), mode='wb') as f:
                     f.write(constant_graph.SerializeToString())
 
         except Exception as e:
