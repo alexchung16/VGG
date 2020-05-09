@@ -17,9 +17,14 @@ import tensorflow as tf
 from sklearn.preprocessing import LabelEncoder
 import cv2 as cv
 
-original_dataset_dir = '/home/alex/Documents/dataset/flower_photos'
-tfrecord_dir = os.path.join(original_dataset_dir, 'tfrecord')
+original_dataset_dir = '/home/alex/Documents/dataset/flower_split'
+train_src = os.path.join(original_dataset_dir, 'train')
+val_src = os.path.join(original_dataset_dir, 'val')
 
+target_dataset_dir = '/home/alex/Documents/dataset/flower_tfrecord'
+
+train_target = os.path.join(target_dataset_dir, 'train')
+val_target = os.path.join(target_dataset_dir, 'val')
 
 
 def makedir(path):
@@ -50,10 +55,9 @@ def execute_tfrecord(source_path, outputs_path, per_record_capacity=500, shuffle
 
     img_names, img_labels, classes_map = get_label_data(source_path, shuffle=shuffle)
 
-    # create tfrecord path
-    record_path = os.path.join(outputs_path, 'train')
+
     # test_record_path = os.path.join(outputs_path, 'test')
-    makedir(record_path)
+    makedir(outputs_path)
     # makedir(test_record_path)
 
     num_samples = len(img_names)
@@ -65,12 +69,12 @@ def execute_tfrecord(source_path, outputs_path, per_record_capacity=500, shuffle
     # test_name_list = img_names[train_data_num:]
     # test_labels_list = img_labels[train_data_num:]
 
-    image_to_record(save_path=record_path,
+    image_to_record(save_path=outputs_path,
                     img_name_list=img_names,
                     labels_list=img_labels,
                     record_capacity=per_record_capacity)
     print("There are {0} samples has successfully convert to tfrecord, save at {1}".format(num_samples,
-                                                                                           record_path))
+                                                                                           outputs_path))
     # image_to_record(save_path=test_record_path,
     #                 img_name_list=test_name_list,
     #                 labels_list=test_labels_list,
@@ -318,6 +322,6 @@ def tfrecord_test():
 
 if __name__ == "__main__":
 
-    execute_tfrecord(source_path=original_dataset_dir, outputs_path=tfrecord_dir)
-
+    execute_tfrecord(source_path=train_src, outputs_path=train_target)
+    execute_tfrecord(source_path=val_src, outputs_path=val_target)
 

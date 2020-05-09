@@ -155,7 +155,7 @@ def get_batch(data_dir, image_shape, label_depth=5, batch_size=32, capacity=128)
         lambda: tf.image.decode_jpeg(images_content),
         lambda: tf.image.decode_png(images_content))
 
-    images = preprocess_for_train(images, image_shape[0], image_shape[1]) # image preprocess
+    images = preprocess_image(images, image_shape[0], image_shape[1], is_training=True) # image preprocess
 
     image_batch, label_batch = tf.train.batch([images, labels], batch_size=batch_size, num_threads=10, capacity=capacity)
 

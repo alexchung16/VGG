@@ -13,16 +13,15 @@ import matplotlib.pyplot as plt
 import tensorflow.contrib.slim as slim
 from tensorflow.python_io import tf_record_iterator
 from tensorflow.python.ops import control_flow_ops
+from DataProcess.vgg_preprocessing import preprocess_image
 
-# original_dataset_dir = '/home/alex/Documents/datasets/dogs_vs_cat_separate'
-original_dataset_dir = '/home/alex/Documents/dataset/dogs_vs_cat_separate'
-tfrecord_dir = os.path.join(original_dataset_dir, 'tfrecord')
+dataset_dir = '/home/alex/Documents/dataset/flower_tfrecord'
 
-train_path = os.path.join(original_dataset_dir, 'train')
-test_path = os.path.join(original_dataset_dir, 'test')
+train_data_path = os.path.join(dataset_dir, 'train')
+test_data_path = os.path.join(dataset_dir, 'val')
 
 
-def parse_example(serialized_sample, input_shape, class_depth, is_training=False, fast_mode=True, preprocessing_type='vgg'):
+def parse_example(serialized_sample, target_shape, class_depth, is_training=False):
     """
     parse tensor
     :param image_sample:
@@ -58,8 +57,10 @@ def parse_example(serialized_sample, input_shape, class_depth, is_training=False
     # second step dataset operation
 
     # image augmentation
-    image = augmentation_image(image=image, image_shape=input_shape, preprocessing_type=preprocessing_type,
-                               fast_mode=fast_mode, is_training=is_training,)
+    # image = augmentation_image(image=image, image_shape=input_shape, preprocessing_type=preprocessing_type,
+    #                            fast_mode=fast_mode, is_training=is_training,)
+    image = preprocess_image(image=image, output_height=target_shape[0], output_width=target_shape[1],
+                             is_training=is_training)
     # onehot label
     label = tf.one_hot(indices=label, depth=class_depth)
 
@@ -337,7 +338,7 @@ def distorted_bounding_box_crop(image,
 
 
 
-def dataset_tfrecord(record_file, input_shape, class_depth, epoch=5, batch_size=10, shuffle=True,
+def dataset_tfrecord(record_file, target_shape, class_depth, epoch=5, batch_size=10, shuffle=True,
                     preprocessing_type = 'vgg', fast_mode=True, is_training=False):
     """
     construct iterator to read image
@@ -361,9 +362,8 @@ def dataset_tfrecord(record_file, input_shape, class_depth, epoch=5, batch_size=
     # parse_img_dataset = raw_img_dataset.map(parse_example)
     # when parse_example has more than one parameter which used to process data
     parse_img_dataset = raw_img_dataset.map(lambda series_record:
-                                            parse_example(series_record, input_shape, class_depth,
-                                                          preprocessing_type = preprocessing_type,
-                                                          fast_mode=fast_mode, is_training=is_training))
+                                            parse_example(series_record, target_shape, class_depth,
+                                                          is_training=is_training))
     # get dataset batch
     if shuffle:
         shuffle_batch_dataset = parse_img_dataset.shuffle(buffer_size=batch_size*4).repeat(epoch).batch(batch_size=batch_size)
@@ -379,7 +379,7 @@ def dataset_tfrecord(record_file, input_shape, class_depth, epoch=5, batch_size=
     return image, label, filename
 
 
-def reader_tfrecord(record_file, input_shape, class_depth, batch_size=10, num_threads=2, epoch=5, shuffle=True,
+def reader_tfrecord(record_file, target_shape, class_depth, batch_size=10, num_threads=2, epoch=5, shuffle=True,
                     preprocessing_type='vgg', fast_mode=True, is_training=False):
     """
     read and sparse TFRecord
@@ -401,7 +401,7 @@ def reader_tfrecord(record_file, input_shape, class_depth, batch_size=10, num_th
     _, serialized_sample = reader.read(filename_queue)
 
     # parse sample
-    image, label, filename = parse_example(serialized_sample, input_shape=input_shape, class_depth=class_depth,
+    image, label, filename = parse_example(serialized_sample, target_shape=target_shape, class_depth=class_depth,
                                            fast_mode=fast_mode, preprocessing_type=preprocessing_type,
                                            is_training=is_training)
 
@@ -442,9 +442,11 @@ def get_num_samples(record_dir):
     return num_samples
 
 if __name__ == "__main__":
-    record_file = os.path.join(tfrecord_dir, 'train')
-    image_batch, label_batch, filename = dataset_tfrecord(record_file=record_file, input_shape=[224, 224, 3],
+    num_samples = get_num_samples(train_data_path)
+    print('all sample size is {0}'.format(num_samples))
+    image_batch, label_batch, filename = dataset_tfrecord(record_file=train_data_path, target_shape=[224, 224, 3],
                                                           class_depth=5, is_training=True)
+
     # create local and global variables initializer group
     init_op = tf.group(
         tf.global_variables_initializer(),
@@ -453,8 +455,6 @@ if __name__ == "__main__":
     with tf.Session() as sess:
         sess.run(init_op)
 
-        num_samples = get_num_samples(record_file)
-        print('all sample size is {0}'.format(num_samples))
         # create Coordinator to manage the life period of multiple thread
         coord = tf.train.Coordinator()
         # Starts all queue runners collected in the graph to execute input queue operation
