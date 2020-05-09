@@ -226,15 +226,16 @@ if __name__ == "__main__":
 
                 # ++++++++++++++++++++++++++++save model to pb+++++++++++++++++++++++++++++++++++++++
                 # get op name for save model
-                input_op = vgg.raw_input_data.name
-                logit_op = vgg.logits.name
+                # input_op = vgg.raw_input_data.name
+                # logit_op = vgg.logits.name
+                input_op = vgg.raw_input_data.op.name
+                logit_op = vgg.logits.op.name
                 # convert variable to constant
                 input_graph_def = tf.get_default_graph().as_graph_def()
                 constant_graph = tf.graph_util.convert_variables_to_constants(sess, input_graph_def,
-                                                                              [input_op.split(':')[0],
-                                                                               logit_op.split(':')[0]])
+                                                                              [input_op ,logit_op])
                 # save to serialize file
-                with tf.gfile.FastGFile(name=os.path.join(FLAGS.model_dir, 'model_pb', 'model.pb'), mode='wb') as f:
+                with tf.gfile.FastGFile(name=os.path.join(FLAGS.model_dir, 'model.pb'), mode='wb') as f:
                     f.write(constant_graph.SerializeToString())
 
         except Exception as e:
