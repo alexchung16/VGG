@@ -129,13 +129,15 @@ class VGG16():
         """
         # define trainable variable
         # define frozen layer
+
         trainable_scope = ['vgg_16/fc6', 'vgg_16/fc7', 'vgg_16/fc8']
-        # trainable_scope = []
-        trainable_variable = []
         if trainable_scope is not None:
+            trainable_variable = []
             for scope in trainable_scope:
                 variables = tf.model_variables(scope=scope)
                 [trainable_variable.append(var) for var in variables]
+        else:
+            trainable_variable = None
 
         learning_rate = tf.train.exponential_decay(learning_rate=learning_rate, global_step=global_step,
                                                    decay_steps=self.decay_steps, decay_rate=self.decay_rate,
