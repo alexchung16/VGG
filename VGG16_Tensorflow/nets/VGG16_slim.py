@@ -119,7 +119,7 @@ class VGG16():
                prop = slim.softmax(logits=logits, scope='softmax')
                return prop
 
-    def training(self, learning_rate, global_step, train_scope=None):
+    def training(self, learning_rate, global_step, trainable_scope=None):
         """
         train operation
         :param learnRate:
