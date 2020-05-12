@@ -150,6 +150,25 @@ class VGG16():
                                                                              var_list=trainable_variable)
         return train_op
 
+    def load_weights(self, sess, model_path, custom_scope=None):
+        """
+        load pre train model
+        :param sess:
+        :param model_path:
+        :param custom_scope:
+        :return:
+        """
+
+        model_variable = tf.model_variables()
+        if custom_scope is None:
+            custom_scope = ['vgg_16/fc8']
+        for scope in custom_scope:
+            variables = tf.model_variables(scope=scope)
+            [model_variable.remove(var) for var in variables]
+        saver = tf.train.Saver(var_list=model_variable)
+        saver.restore(sess, save_path=model_path)
+        print('Successful load pretrain model from {0}'.format(model_path))
+
     # def predict(self):
     #     """
     #     predict operation

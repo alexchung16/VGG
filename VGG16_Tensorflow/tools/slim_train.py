@@ -131,7 +131,7 @@ if __name__ == "__main__":
                                                                    epoch=FLAGS.epoch,
                                                                    shuffle=True,
                                                                    is_training=False)
-
+    saver = tf.train.Saver()
     init_op = tf.group(
         tf.global_variables_initializer(),
         tf.local_variables_initializer()
@@ -162,13 +162,7 @@ if __name__ == "__main__":
         # load pretrain model
         if FLAGS.is_pretrain:
             # remove variable of fc8 layer from pretrain model
-            custom_scope = ['vgg_16/fc8']
-            for scope in custom_scope:
-                variables = tf.model_variables(scope=scope)
-                [model_variable.remove(var) for var in variables]
-            saver = tf.train.Saver(var_list=model_variable)
-            saver.restore(sess, save_path=FLAGS.pretrain_model_dir)
-            print('Successful load pretrain model from {0}'.format(FLAGS.pretrain_model_dir))
+            vgg.load_weights(sess, model_path=FLAGS.pretrain_model_dir)
 
         # print(sess.run('vgg_16/conv1/conv1_1/biases:0'))
         coord = tf.train.Coordinator()
