@@ -18,7 +18,7 @@ class VGG16():
                  weight_decay=0.00005, num_samples_per_epoch=None, num_epoch_per_decay=None):
         self.num_classes = num_classes
         self.batch_size = batch_size
-        self.decay_steps = int(num_samples_per_epoch / batch_size * num_epoch_per_decay)
+        self.decay_steps = int(num_samples_per_epoch * num_epoch_per_decay / batch_size)
         self.decay_rate = decay_rate
         self.learning_rate = learning_rate
         # self.optimizer = optimizer
@@ -189,8 +189,14 @@ class VGG16():
         with tf.name_scope(name):
             cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels, name='entropy')
             loss = tf.reduce_mean(input_tensor=cross_entropy, name='loss')
-            tf.summary.scalar("loss", loss)
-            return loss
+            # tf.losses.add_loss(loss) # add normal loss to losses collection
+            # # weight_loss = slim.losses.get_regularization_losses()
+            # # tf.losses.add_loss(weight_loss) # add regularization loss to losses collection
+            # total_loss = tf.losses.get_total_loss()
+            weight_loss = tf.add_n(slim.losses.get_regularization_losses())
+            total_loss = loss + weight_loss
+            tf.summary.scalar("total loss", total_loss)
+            return total_loss
 
     def get_accuracy(self, logits, labels):
         """

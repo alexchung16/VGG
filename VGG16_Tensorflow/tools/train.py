@@ -29,7 +29,7 @@ npy_model_path = os.path.join(model_dir, 'vgg16.npy')
 
 # outputs path
 save_dir = os.path.join('../', 'outputs', 'model', 'model.ckpt')
-log_dir = os.path.join(',,/', 'outputs', 'logs')
+log_dir = os.path.join('../', 'outputs', 'logs')
 
 input_shape = [224, 224, 3]
 num_classes=5
