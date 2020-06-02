@@ -23,7 +23,7 @@ model_path = os.path.join('../outputs/model', 'model.ckpt-2730')
 image_path = './demo/rose_0.jpg'
 
 means =  [123.68, 116.779, 103.939]
-class_name = ['sunflowers', 'roses', 'dandelion', 'daisy', 'tulips']
+class_name = ['daisy','dandelion', 'roses', 'sunflowers', 'tulips']
 
 def image_preprocess(img_path, target_size=(224, 224), color_mode='rgb'):
     """
