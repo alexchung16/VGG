@@ -13,7 +13,111 @@ import numpy as np
 import tensorflow as tf
 
 
-def predict_with_pb(model_path, image, input_op_name, logits_op_name):
+import os
+import numpy as np
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from PIL import Image as pil_image
+# from DataProcess.vgg_preprocessing import preprocess_image
+
+meta_path = os.path.join('../outputs/model', 'model.ckpt-2730.meta')
+model_path = os.path.join('../outputs/model', 'model.ckpt-2730')
+model_pb_path = os.path.join('../outputs/model', 'model.pb')
+
+image_path = './demo/rose_0.jpg'
+
+means =  [123.68, 116.779, 103.939]
+class_name = ['daisy','dandelion', 'roses', 'sunflowers', 'tulips']
+
+def image_preprocess(img_path, target_size=(224, 224), color_mode='rgb'):
+    """
+
+    :param img_path:
+    :param target_size:
+    :param img_type:
+    :return:
+    """
+    img = pil_image.open(img_path)
+
+    # convert channel
+    if color_mode == 'grayscale':
+        if img.mode != 'L':
+            img = img.convert('L')
+    elif color_mode == 'rgba':
+        if img.mode != 'RGBA':
+            img = img.convert('RGBA')
+    if color_mode == 'rgb':
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+    # resize
+    width_height_tuple = (target_size[1], target_size[0])
+    if img.size != width_height_tuple:
+        img = img.resize(width_height_tuple, resample=pil_image.NEAREST)
+
+    # convert tensor to array
+    img_array = np.asarray(img, dtype=np.float32)
+
+    # white process
+    for channel in range(3):
+        img_array[:, :, channel] -= means[channel]
+
+    # expand dimension
+    img_batch = np.expand_dims(img_array, axis=0)
+
+    return img_batch
+
+
+def visualize_predict(predict, class_name):
+    """
+    visualize predict result
+    :param predict:
+    :param class_name:
+    :return:
+    """
+    fig, ax = plt.subplots()
+    y_pos = np.arange(len(predict))
+
+    ax.barh(y_pos, predict, align='center')
+    ax.set_yticks(y_pos)
+    ax.set_ylabel('category')
+    ax.set_yticklabels(class_name)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('probability')
+    ax.set_title('predict result')
+    plt.show()
+
+
+def inference_with_ckpt(model_path, image_path, target_size=(224, 224)):
+    """
+
+    :param model_path:
+    :param image_path:
+    :return:
+    """
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
+        restorer = tf.train.import_meta_graph(meta_path)
+
+        # get graph
+        graph = tf.get_default_graph()
+        # restorer.restore(sess, save_path=tf.train.latest_checkpoint(checkpoint_dir='./outputs/model'))
+        restorer.restore(sess, save_path=model_path)
+
+        tensor_name_list = [tensor.name for tensor in graph.as_graph_def().node]
+        image_placeholder = graph.get_tensor_by_name('input_images:0')
+        # label_placeholder = graph.get_tensor_by_name('class_label:0')
+        # logits_op = graph.get_tensor_by_name(name='vgg16/prob:0')
+        logits_op = graph.get_tensor_by_name('vgg_16/vgg_16/softmax/Softmax:0')
+
+        image_batch = image_preprocess(image_path, target_size=target_size)
+
+        prob = sess.run(logits_op, feed_dict={image_placeholder: image_batch})
+
+        return prob
+
+
+def predict_with_pb(model_path, image_path, target_size=(224, 224)):
     """
     model read and predict
     :param model_path:
@@ -31,7 +135,6 @@ def predict_with_pb(model_path, image, input_op_name, logits_op_name):
         for index, layer in enumerate(graph_def.node):
             print(index, layer.name)
 
-
         init_op = tf.group(tf.global_variables_initializer(),
                            tf.local_variables_initializer())
         config = tf.ConfigProto()
@@ -42,9 +145,19 @@ def predict_with_pb(model_path, image, input_op_name, logits_op_name):
             graph = tf.get_default_graph()
             # get tensor name
             # tensor_name_list = [tensor.name for tensor in graph.as_graph_def().node]
-            input_op = graph.get_tensor_by_name(name=input_op_name)
-            logits_op = graph.get_tensor_by_name(name=logits_op_name)
-
-            prob = sess.run(fetches=logits_op, feed_dict={input_op: image})
+            input_op = graph.get_tensor_by_name(name='input_images:0')
+            # logits_op = graph.get_tensor_by_name(name='vgg16/prob:0')
+            logits_op = graph.get_tensor_by_name(name='vgg_16/vgg_16/softmax/Softmax:0')
+            image_batch = image_preprocess(image_path, target_size=target_size)
+            prob = sess.run(fetches=logits_op, feed_dict={input_op: image_batch})
 
             return prob
+
+if __name__ == "__main__":
+
+        # prob = inference_with_ckpt(model_path, image_path)
+        prob = predict_with_pb(model_path=model_pb_path, image_path=image_path)
+        predict_label = int(np.argmax(prob))
+        print('This is a {0} with possibility {1}'.format(class_name[predict_label], prob[0][predict_label]))
+
+        visualize_predict(prob[0], class_name)
