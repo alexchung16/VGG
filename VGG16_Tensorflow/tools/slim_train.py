@@ -199,7 +199,7 @@ if __name__ == "__main__":
                 # convert variable to constant
                 input_graph_def = tf.get_default_graph().as_graph_def()
                 constant_graph = tf.graph_util.convert_variables_to_constants(sess, input_graph_def,
-                                                                              [input_op ,logit_op])
+                                                                              [input_op, logit_op])
                 # save to serialize file
                 with tf.gfile.FastGFile(name=os.path.join(FLAGS.model_dir, 'model.pb'), mode='wb') as f:
                     f.write(constant_graph.SerializeToString())
