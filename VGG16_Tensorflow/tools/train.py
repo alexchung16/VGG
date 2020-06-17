@@ -50,6 +50,10 @@ if __name__ == "__main__":
 
     vgg = VGG16(input_shape, num_classes=num_classes, learning_rate=learning_rate)
 
+    # add scalar value to summary protocol buffer
+    tf.summary.scalar('loss', vgg.loss)
+    tf.summary.scalar('accuracy', vgg.accuracy)
+
     train_image_batch, train_label_batch = \
         dataset_batch(data_dir=train_dir, batch_size=batch_size, epoch=epoch, is_training=True).get_next()
 

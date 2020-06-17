@@ -85,6 +85,10 @@ if __name__ == "__main__":
                 keep_prob=FLAGS.keep_prop,
                 weight_decay=FLAGS.weight_decay)
 
+    # add scalar value to summary protocol buffer
+    tf.summary.scalar('loss', vgg.loss)
+    tf.summary.scalar('accuracy', vgg.accuracy)
+
     train_images_batch, train_labels_batch, train_filenames = dataset_tfrecord(record_files=FLAGS.train_data_dir,
                                                                   batch_size=FLAGS.batch_size,
                                                                   target_shape=[FLAGS.height, FLAGS.width, FLAGS.depth],
