@@ -32,12 +32,12 @@ class VGG16():
         self.global_step = tf.train.create_global_step()
 
         # logits
-        self.logits =  self.inference(input_op=self.raw_input_data, name='vgg16')
+        self.logits, self.predict =  self.inference(input_op=self.raw_input_data, name='vgg16')
         # computer loss value
         self.loss = self.losses(labels=self.raw_input_label, logits=self.logits, name='loss')
         # train operation
         self.train = self.training(self.learning_rate, self.global_step)
-        self.accuracy = self.get_accuracy(logits=self.logits, labels=self.raw_input_label)
+        self.accuracy = self.get_accuracy(predict=self.predict, labels=self.raw_input_label)
 
     def inference(self, input_op, name):
         """
@@ -96,12 +96,11 @@ class VGG16():
 
             self.fc7 = self.fully_connected(input_op=self.dropout1, scope='fc7', num_outputs=4096, fineturn=True)
             self.dropout2 = self.dropout(input_op=self.fc7, scope='dropout2', keep_prob=self.keep_prob)
-            self.fc8 = self.fully_connected(input_op=self.dropout2, scope='fc8', num_outputs=self.num_classes,
+            logits = self.fully_connected(input_op=self.dropout2, scope='fc8', num_outputs=self.num_classes,
                                             fineturn=True)
+            predict = tf.nn.softmax(self.logits, name="prob")
 
-            prob = tf.nn.softmax(self.fc8, name="prob")
-
-        return prob
+        return logits, predict
 
     def training(self, learning_rate, global_step):
         """
@@ -134,14 +133,14 @@ class VGG16():
             cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels, name='entropy')
             return tf.reduce_mean(input_tensor=cross_entropy, name='entropy_mean')
 
-    def get_accuracy(self, logits, labels):
+    def get_accuracy(self, predict, labels):
         """
         evaluate one batch correct num
         :param logits:
         :param label:
         :return:
         """
-        correct_predict = tf.equal(tf.argmax(input=logits, axis=1), tf.argmax(input=labels, axis=1))
+        correct_predict = tf.equal(tf.argmax(input=predict, axis=1), tf.argmax(input=labels, axis=1))
         return tf.reduce_mean(tf.cast(correct_predict, dtype=tf.float32))
 
 

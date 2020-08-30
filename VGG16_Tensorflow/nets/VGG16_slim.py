@@ -43,12 +43,12 @@ class VGG16():
         # self.epoch_step = tf.Variable(0, trainable=False, name="epoch_step")
 
         # logits
-        self.logits =  self.inference(inputs=self.raw_input_data, name='vgg_16')
+        self.logits, self.predict =  self.inference(inputs=self.raw_input_data, name='vgg_16')
         # computer loss value
         self.loss = self.losses(labels=self.raw_input_label, logits=self.logits, name='loss')
         # train operation
         self.train = self.training(self.learning_rate, self.global_step)
-        self.accuracy = self.get_accuracy(logits=self.logits, labels=self.raw_input_label)
+        self.accuracy = self.get_accuracy(predict=self.predict, labels=self.raw_input_label)
 
     def inference(self, inputs, name):
         """
@@ -61,13 +61,13 @@ class VGG16():
         self.parameters = []
         # inputs /= 255.
         with tf.variable_scope(name, reuse=None) as sc:
-            prop = self.vgg16(inputs=inputs,
+            logits, predict = self.vgg16(inputs=inputs,
                                num_classes= self.num_classes,
                                is_training = self.is_training,
                                keep_prob = self.keep_prob,
                                scope=sc)
 
-        return prop
+        return logits, predict
 
     def vgg16(self, inputs,
               num_classes=None,
@@ -116,8 +116,8 @@ class VGG16():
                logits = tf.squeeze(net, [1, 2], name='fc8/squeezed')
 
                # softmax
-               prop = slim.softmax(logits=logits, scope='softmax')
-               return prop
+               predict = slim.softmax(logits=logits, scope='softmax')
+               return logits, predict
 
     def training(self, learning_rate, global_step, trainable_scope=None):
         """
@@ -198,14 +198,14 @@ class VGG16():
             tf.summary.scalar("total loss", total_loss)
             return total_loss
 
-    def get_accuracy(self, logits, labels):
+    def get_accuracy(self, predict, labels):
         """
         evaluate one batch correct num
-        :param logits:
+        :param predicts:
         :param label:
         :return:
         """
-        correct_predict = tf.equal(tf.argmax(input=logits, axis=1), tf.argmax(input=labels, axis=1))
+        correct_predict = tf.equal(tf.argmax(input=predict, axis=1), tf.argmax(input=labels, axis=1))
         return tf.reduce_mean(tf.cast(correct_predict, dtype=tf.float32))
 
     def fill_feed_dict(self, image_feed, label_feed, is_training):
