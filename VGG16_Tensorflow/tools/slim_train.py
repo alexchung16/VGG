@@ -199,19 +199,20 @@ if __name__ == "__main__":
                 # input_op = vgg.raw_input_data.name
                 # logit_op = vgg.logits.name
                 input_op = vgg.raw_input_data.op.name
-                logit_op = vgg.logits.op.name
+                predict_op = vgg.predict.op.name
                 # convert variable to constant
                 input_graph_def = tf.get_default_graph().as_graph_def()
                 constant_graph = tf.graph_util.convert_variables_to_constants(sess, input_graph_def,
-                                                                              [input_op, logit_op])
+                                                                              [input_op, predict_op])
                 # save to serialize file
                 with tf.gfile.FastGFile(name=os.path.join(FLAGS.model_dir, 'model.pb'), mode='wb') as f:
                     f.write(constant_graph.SerializeToString())
 
         except Exception as e:
             print(e)
-        coord.request_stop()
-        coord.join(threads)
+        finally:
+            coord.request_stop()
+            coord.join(threads)
     sess.close()
     print('model training has complete')
 
